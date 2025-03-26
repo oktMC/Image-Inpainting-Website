@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Image Upload with Tools</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+  <header class="navbar">
+    <div class="container">
+      <div class="logo">
+        <a href="#">ImageEditor</a>
+      </div>
+      <nav>
+        <ul class="nav-links">
+          <li><a href="#" class="active">Home</a></li>
+          <li><a href="#">Gallery</a></li>
+          <!-- <li><a href="#">About</a></li>
+          <li><a href="#">Contact</a></li> -->
+        </ul>
+        <div class="auth-icon" id="auth-icon">
+          <i class="fa-solid fa-user-plus" title="Login"></i>
+        </div>
+        <div class = "test">
+          <input type="checkbox" id="switch">
+          <label class="toggle-switch" for="switch">
+            <span class="switch-btn"></span>
+            <span class="mode-icon">
+              <img id="mode-icon" src="https://developer.mozilla.org/static/media/theme-light.af1aa3887c0deadaaf2e.svg" alt="">
+            </span>
+          </label>
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <div class="container">
+      <h1>Image Upload & Edit</h1>
+      
+      <div class="upload-container">
+        <div class="toolbar">
+          <button class="tool-btn" id="crop-tool" title="Crop">
+            <i class="fa-solid fa-paintbrush"></i>
+          </button>
+          <button class="tool-btn" id="rotate-tool" title="Rotate">
+            <i class="fas fa-redo"></i>
+          </button>
+          <button class="tool-btn" id="magic-wand-tool" title="Magic Wand">
+            <i class="fas fa-magic"></i>
+          </button>
+          <button class="tool-btn" id="filter-tool" title="Filters">
+            <i class="fas fa-sliders-h"></i>
+          </button>
+          <button class="tool-btn" id="text-tool" title="Add Text">
+            <i class="fas fa-font"></i>
+          </button>
+        </div>
+        <div class="image-mode">
+            <button class="mode-btn" id="Grayscale">Grayscale</button>
+            <button class="mode-btn" id="RGB">RGB</button>
+        </div>
+        <div class="upload-area" id="upload-area">
+          <div class="upload-message" id="upload-message">
+            <i class="fas fa-cloud-upload-alt"></i>
+            <p>Drag & drop an image here or click to browse</p>
+            <span>Supports: JPG, PNG, GIF (Max: 5MB)</span>
+          </div>
+          
+          <div class="image-preview-container" id="image-preview-container">
+            <img id="image-preview" alt="Preview">
+            <canvas class="canvas" id="resultCanvas"></canvas>
+            <!-- <div class="image-overlay" id="image-overlay"></div> -->
+          </div>
+          
+          <input type="file" id="file-input" accept="image/*" hidden>
+        </div>
+        
+        <div class="upload-actions">
+          <button class="btn btn-secondary" id="reset-btn">Reset</button>
+          <button class="btn btn-primary" id="upload-btn" disabled>Inpaint</button>
+        </div>
+        
+        <div class="upload-status" id="upload-status"></div>
+      </div>
+    </div>
+  </main>
+  
+  <!-- Processing Modal -->
+  <div class="modal" id="processing-modal">
+    <div class="modal-content">
+      <!-- Processing View -->
+      <div class="processing-container" id="processing-container">
+        <div class="loading-spinner">
+          <div class="spinner"></div>
+        </div>
+        <h2>Processing Image</h2>
+        <p>Please wait while we process your image...</p>
+      </div>
+      
+      <!-- Result View -->
+      <div class="result-container" id="result-container" style="display: none;">
+        <div class="modal-header">
+          <h2>Processed Image</h2>
+          <button class="close-btn" id="close-modal-btn">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div class="image-result-wrapper">
+          <div class="processed-image-container">
+            <img id="processed-image" alt="Processed image">
+            <div class="image-actions">
+              <button id="download-btn" class="action-btn" title="Download Image">
+                <i class="fas fa-download"></i>
+              </button>
+              <button id="save-gallery-btn" class="action-btn" title="Save to Gallery">
+                <i class="fas fa-plus"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="result-actions">
+          <button class="btn btn-secondary" id="back-btn">Back to Editor</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Login Modal -->
+  <div class="modal" id="login-modal">
+    <div class="modal-content login-modal-content">
+      <div class="modal-header">
+        <h2>Login</h2>
+        <button class="close-btn" id="close-login-btn">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <form id="login-form">
+        <div class="form-group">
+          <label for="username">Username</label>
+          <input type="text" id="username" name="username" required>
+        </div>
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" required>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">Login</button>
+        </div>
+        <div class="form-footer">
+          <p>Don't have an account? <a href="#" id="show-signup-link">Sign up</a></p>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Sign Up Modal -->
+  <div class="modal" id="signup-modal">
+    <div class="modal-content login-modal-content">
+      <div class="modal-header">
+        <h2>Create Account</h2>
+        <button class="close-btn" id="close-signup-btn">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <form id="signup-form">
+        <div class="form-group">
+          <!-- <label for="signup-username">Username</label> -->
+          <input type="text" id="signup-username" name="username" placeholder="Username" required>
+        </div>
+        <div class="form-group">
+          <!-- <label for="signup-password">Password</label> -->
+          <input type="password" id="signup-password" name="password" placeholder="Password" required>
+        </div>
+        <div class="form-group">
+          <!-- <label for="confirm-password">Confirm Password</label> -->
+          <input type="password" id="confirm-password" name="confirmPassword" placeholder="Confirm your password" required>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">Create Account</button>
+          <button type="button" class="btn btn-secondary" id="back-to-login-btn">Back to Login</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <footer>
+    <div class="container">
+      <p>&copy; 2024 ImageEditor. All rights reserved.</p>
+    </div>
+  </footer>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://unpkg.com/magic-wand-tool@latest/dist/magic-wand.min.js"></script>
+  <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+  <script src="magicWand.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>

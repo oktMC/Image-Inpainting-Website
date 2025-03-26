@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Processing Image</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+  <header class="navbar">
+    <div class="container">
+      <div class="logo">
+        <a href="index.html">ImageEditor</a>
+      </div>
+      <nav>
+        <ul class="nav-links">
+          <li><a href="index.html">Home</a></li>
+          <li><a href="#">Gallery</a></li>
+          <li><a href="#">About</a></li>
+          <li><a href="#">Contact</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <div class="container">
+      <div class="processing-container" id="processing-container">
+        <div class="loading-spinner">
+          <div class="spinner"></div>
+        </div>
+        <h2>Processing Image</h2>
+        <p>Please wait while we process your image...</p>
+      </div>
+      
+      <div class="result-container" id="result-container" style="display: none;">
+        <h2>Processed Image</h2>
+        <div class="image-result-wrapper">
+          <div class="processed-image-container">
+            <img id="processed-image" src="/placeholder.svg" alt="Processed image">
+            <div class="image-actions">
+              <button id="download-btn" class="action-btn" title="Download Image">
+                <i class="fas fa-download"></i>
+              </button>
+              <button id="save-gallery-btn" class="action-btn" title="Save to Gallery">
+                <i class="fas fa-images"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="result-actions">
+          <button class="btn btn-secondary" id="back-btn">Back to Editor</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <div class="container">
+      <p>&copy; 2024 ImageEditor. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script src="processing.js"></script>
+</body>
+</html>
+
