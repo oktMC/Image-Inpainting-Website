@@ -7,6 +7,8 @@ const verifyToken = (req, res, next) => {
     }
   
     jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+      // console.log(req.headers)
+      // console.log(token)
       // console.log(err)
       if (err) {
         if (err.name === 'TokenExpiredError') {

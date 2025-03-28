@@ -573,6 +573,7 @@ footer {
 .processed-image-container img {
   display: block;
   max-width: 100%;
+  min-height: 250px;
   max-height: 60vh;
 }
 
@@ -607,6 +608,10 @@ footer {
 .action-btn:hover {
   background-color: #4a6cf7;
   color: white;
+}
+
+.fa-star{
+  color: orange;
 }
 
 .result-actions {

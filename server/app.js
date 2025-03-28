@@ -36,6 +36,7 @@ const userSchema = new mongoose.Schema({
 
 const gallerySchema = new mongoose.Schema({
     username: { type: String, required: true },
+    title: {type:String, default: "Untitled" },
     image: { type: String, required: true },
     size: {type: String}, //1.8 MB
     dimensions: {type: String}, //1920 x 1080
@@ -218,6 +219,7 @@ app.post('/api/save', express.json(), verifyToken, async(req,res) => {
     try {
         const user = await User.findOne({ username: req.user.username });
         const processedImageID = req.body.processedImageID;
+        console.log(processedImageID)
         if (!user) {
             return res.status(404).json({ error: 'User not found' });
         }
@@ -275,6 +277,54 @@ app.get('/api/validate-token', verifyToken, (req, res) => {
       isValid: true,
       username: req.user.username
     });
+});
+
+app.put('/api/users/favorites', express.json(), verifyToken, async (req, res) => {
+    try {
+        // Validate request body
+        // console.log(req.body)
+        if (!req.body._id || typeof req.body.favorite !== 'boolean') {
+            return res.status(400).json({ error: 'Invalid request. Both _id and favorite fields are required' });
+        }
+
+        // Check if image exists
+        const image = await Gallery.findById(req.body._id);
+        if (!image) {
+            return res.status(404).json({ error: 'Image not found' });
+        }
+
+        // Verify ownership (optional but recommended)
+        if (image.username !== req.user.username) {
+            return res.status(403).json({ error: 'Unauthorized to modify this image' });
+        }
+
+        // Update favorite status
+        const updatedImage = await Gallery.findByIdAndUpdate(
+            req.body._id,
+            { favorite: req.body.favorite },
+            { new: true } // Return the updated document
+        );
+
+        res.json({
+            message: `Image ${updatedImage.favorite ? 'added to' : 'removed from'} favorites`,
+            image: {
+                _id: updatedImage._id,
+                favorite: updatedImage.favorite
+            }
+        });
+
+    } catch (error) {
+        console.error('Error updating favorite status:', error);
+        
+        if (error.name === 'CastError') {
+            return res.status(400).json({ error: 'Invalid image ID format' });
+        }
+        
+        res.status(500).json({ 
+            error: 'Failed to update favorite status',
+            details: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
+    }
 });
 
 app.listen(5000,()=>{

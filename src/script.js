@@ -272,7 +272,7 @@ document.addEventListener("DOMContentLoaded", () => {
       submitButton.textContent = "Logging in...";
   
       // Send login request
-      const response = await axios.post('http://localhost:5000/api/login', {
+      const response = await axios.post('/api/login', {
         username: username,
         password: password,
       });
@@ -282,7 +282,6 @@ document.addEventListener("DOMContentLoaded", () => {
       updateAuthIcon();
       closeLoginModal();
       showUploadStatus(`Welcome back, ${username}!`, "success");
-  
       // Optional: Save token to localStorage/sessionStorage
       if (response.data.token) {
         localStorage.setItem("authToken", response.data.token);
@@ -371,7 +370,7 @@ document.addEventListener("DOMContentLoaded", () => {
       submitButton.textContent = "Creating account...";
   
       // Send request to server
-      const response = await axios.post('http://localhost:5000/api/register', {
+      const response = await axios.post('/api/register', {
         username: username,
         password: password,
       });
@@ -547,12 +546,12 @@ document.addEventListener("DOMContentLoaded", () => {
     processingModal.classList.add("active")
 
     // Prevent body scrolling
-    document.body.style.overflow = "hidden"
+    disableScroll()
   }
 
   function closeModal() {
     processingModal.classList.remove("active")
-    document.body.style.overflow = ""
+    enableScroll()
 
     // Re-enable the upload button
     uploadBtn.disabled = false
@@ -881,13 +880,13 @@ document.addEventListener("DOMContentLoaded", () => {
     // Filter images based on search query and filter type
     const filteredImages = galleryImages.filter((image) => {
       // Search filter
-      // const matchesSearch = image.title.toLowerCase().includes(searchQuery)
+      const matchesSearch = image.title.toLowerCase().includes(searchQuery)
 
       // // Type filter
       // const matchesType = currentFilter === "all" || image.type === currentFilter
 
       // return matchesSearch && matchesType
-      return true
+      return matchesSearch
     })
 
     // Render filtered images
@@ -911,6 +910,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // Render each image
     images.forEach((image) => {
       const galleryItem = document.createElement("div")
+      const starIcon = image.favorite ? "fa-solid fa-star" : "fa-regular fa-star"
       galleryItem.className = "gallery-item"
       // galleryItem.dataset.id = image.id
 
@@ -928,13 +928,16 @@ document.addEventListener("DOMContentLoaded", () => {
               <button class="gallery-action-btn download-btn" title="Download">
                 <i class="fas fa-download"></i>
               </button>
+              <button class="gallery-action-btn favorite-btn" title="${image.favorite ? 'Remove from favorites' : 'Add to favorites'}">
+                <i class="${starIcon}"></i>
+              </button>
             </div>
           </div>
         </div>
         <div class="gallery-item-info">
           <h3 class="gallery-item-title">${image.title}</h3>
           <div class="gallery-item-meta">
-            <span>${image.uploadedAt}</span>
+            <span>${image.uploadedAt.split('T')[0]}</span>
             <span>${image.size}</span>
           </div>
         </div>
@@ -944,6 +947,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const viewBtn = galleryItem.querySelector(".view-btn")
       const editBtn = galleryItem.querySelector(".edit-btn")
       const downloadBtn = galleryItem.querySelector(".download-btn")
+      const favoriteBtn = galleryItem.querySelector(".favorite-btn")
 
       viewBtn.addEventListener("click", (e) => {
         e.stopPropagation()
@@ -958,6 +962,11 @@ document.addEventListener("DOMContentLoaded", () => {
       downloadBtn.addEventListener("click", (e) => {
         e.stopPropagation()
         downloadGalleryImage(image)
+      })
+
+      favoriteBtn.addEventListener("click", (e) => {
+        e.stopPropagation()
+        toggleFavorite(image._id)
       })
 
       // Click on the item to preview
@@ -979,12 +988,12 @@ document.addEventListener("DOMContentLoaded", () => {
     imagePreviewModal.classList.add("active")
 
     // Prevent body scrolling
-    document.body.style.overflow = "hidden"
+    disableScroll()
   }
 
   function closePreviewModal() {
     imagePreviewModal.classList.remove("active")
-    document.body.style.overflow = ""
+    enableScroll()
   }
 
   function downloadPreviewImage() {
@@ -1048,6 +1057,37 @@ document.addEventListener("DOMContentLoaded", () => {
     } catch (error) {
       console.error('Download failed:', error);
       alert(`Download error: ${error.message}`);
+    }
+  }
+
+  async function toggleFavorite(imageId) {
+    // Find the image in the gallery
+    const imageIndex = galleryImages.findIndex(img => img._id === imageId)
+    
+    if (imageIndex !== -1) {
+      // Toggle the favorite status
+      try {
+        const token = localStorage.getItem('authToken');
+        const response = await axios.put('/api/users/favorites',
+          { _id: imageId,
+            favorite: !galleryImages[imageIndex].favorite,
+          },
+          {
+            headers: {
+              'authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+
+        galleryImages[imageIndex].favorite = !galleryImages[imageIndex].favorite
+        filterGalleryImages()
+
+      } catch (error) {
+        console.error("Error update image:", error);
+        const errorMsg = error.response?.data?.error || "Unable to update image to favorites";
+        showUploadStatus(errorMsg, "error");
+      }
     }
   }
 
