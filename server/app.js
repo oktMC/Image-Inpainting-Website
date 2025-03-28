@@ -327,6 +327,64 @@ app.put('/api/users/favorites', express.json(), verifyToken, async (req, res) =>
     }
 });
 
+app.put('/api/users/title', express.json(), verifyToken, async(req, res) => {
+    try {
+        // 1. Validate request body
+        if (!req.body._id || !req.body.title) {
+            return res.status(400).json({ 
+                error: 'Both _id and title fields are required' 
+            });
+        }
+
+        // 2. Check title length
+        if (req.body.title.length > 20) {
+            return res.status(400).json({ 
+                error: 'Title cannot exceed 100 characters' 
+            });
+        }
+
+        // 3. Find the image and verify ownership
+        const image = await Gallery.findById(req.body._id);
+        if (!image) {
+            return res.status(404).json({ error: 'Image not found' });
+        }
+
+        if (image.username !== req.user.username) {
+            return res.status(403).json({ error: 'Unauthorized to modify this image' });
+        }
+
+        // 4. Update the title
+        const updatedImage = await Gallery.findByIdAndUpdate(
+            req.body._id,
+            { title: req.body.title }, // Trim whitespace
+            { new: true} // Return updated doc and run schema validators
+        );
+
+        // 5. Send success response
+        res.json({
+            message: 'Title updated successfully',
+            image: {
+                _id: updatedImage._id,
+                title: updatedImage.title,
+                updatedAt: updatedImage.updatedAt
+            }
+        });
+
+    } catch (error) {
+        console.error('Error updating title:', error);
+        
+        // Handle different error types
+        if (error.name === 'CastError') {
+            return res.status(400).json({ error: 'Invalid image ID format' });
+        }
+        if (error.name === 'ValidationError') {
+            return res.status(400).json({ error: 'Validation failed' });
+        }
+        
+        res.status(500).json({ error: 'Failed to update title' });
+    }
+});
+
 app.listen(5000,()=>{
     console.log('server is listening port 5000')
 })

@@ -794,9 +794,6 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   async function loadGalleryImages() {
-    // In a real app, this would fetch images from a server
-    // For this demo, we'll use sample data
-
     // Clear existing images
     galleryGrid.innerHTML = ""
 
@@ -816,50 +813,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const errorMsg = error.response?.data?.error || "Failed to load image";
         showUploadStatus(errorMsg, "error");
       }
-      // galleryImages = [
-      //   {
-      //     src: "/placeholder.svg?height=300&width=400",
-      //     date: "March 15, 2024",
-      //     size: "2.4 MB",
-      //     dimensions: "1920 x 1080",
-      //     type: "edited",
-      //   },
-      //   {
-      //     src: "/placeholder.svg?height=300&width=400",
-      //     date: "March 10, 2024",
-      //     size: "1.8 MB",
-      //     dimensions: "1600 x 900",
-      //     type: "favorites",
-      //   },
-      //   {
-      //     src: "/placeholder.svg?height=300&width=400",
-      //     date: "March 5, 2024",
-      //     size: "3.2 MB",
-      //     dimensions: "2560 x 1440",
-      //     type: "recent",
-      //   },
-      //   {
-      //     src: "/placeholder.svg?height=300&width=400",
-      //     date: "February 28, 2024",
-      //     size: "1.5 MB",
-      //     dimensions: "1280 x 720",
-      //     type: "edited",
-      //   },
-      //   {
-      //     src: "/placeholder.svg?height=300&width=400",
-      //     date: "February 20, 2024",
-      //     size: "2.1 MB",
-      //     dimensions: "1920 x 1080",
-      //     type: "favorites",
-      //   },
-      //   {
-      //     src: "/placeholder.svg?height=300&width=400",
-      //     date: "February 15, 2024",
-      //     size: "2.7 MB",
-      //     dimensions: "2048 x 1152",
-      //     type: "recent",
-      //   },
-      // ]
+
       // Show gallery, hide empty state
       galleryGrid.style.display = "grid"
       galleryEmpty.style.display = "none"
@@ -883,14 +837,25 @@ document.addEventListener("DOMContentLoaded", () => {
       const matchesSearch = image.title.toLowerCase().includes(searchQuery)
 
       // // Type filter
-      // const matchesType = currentFilter === "all" || image.type === currentFilter
-
+      const matchesType = currentFilter === "all" || (currentFilter === "favorites" && image.favorite) || (currentFilter === "recent" && isRecent(image.uploadedAt))
       // return matchesSearch && matchesType
-      return matchesSearch
+      return matchesSearch && matchesType
     })
 
     // Render filtered images
     renderGalleryImages(filteredImages)
+  }
+
+  // day <= 7 days (true)
+  function isRecent(uploadedAt) {
+
+    const uploadedDate = new Date(uploadedAt);
+    const currentDate = new Date();
+    const diffInMs = currentDate - uploadedDate;
+    
+    const sevenDaysInMs = 7 * 24 * 60 * 60 * 1000;
+    
+    return diffInMs <= sevenDaysInMs;
   }
 
   function renderGalleryImages(images) {
@@ -911,6 +876,7 @@ document.addEventListener("DOMContentLoaded", () => {
     images.forEach((image) => {
       const galleryItem = document.createElement("div")
       const starIcon = image.favorite ? "fa-solid fa-star" : "fa-regular fa-star"
+      const starIcon_reverse = image.favorite ? "fa-regular fa-star" : "fa-solid fa-star"
       galleryItem.className = "gallery-item"
       // galleryItem.dataset.id = image.id
 
@@ -922,20 +888,24 @@ document.addEventListener("DOMContentLoaded", () => {
               <button class="gallery-action-btn view-btn" title="View">
                 <i class="fas fa-eye"></i>
               </button>
-              <button class="gallery-action-btn edit-btn" title="Edit">
-                <i class="fas fa-edit"></i>
-              </button>
               <button class="gallery-action-btn download-btn" title="Download">
                 <i class="fas fa-download"></i>
-              </button>
-              <button class="gallery-action-btn favorite-btn" title="${image.favorite ? 'Remove from favorites' : 'Add to favorites'}">
-                <i class="${starIcon}"></i>
               </button>
             </div>
           </div>
         </div>
         <div class="gallery-item-info">
-          <h3 class="gallery-item-title">${image.title}</h3>
+          <div class="gallery-item-header">
+            <div class="title-container">
+              <h3 class="gallery-item-title">${image.title}</h3>
+              <button class="edit-name-btn" title="Edit name">
+                <i class="fa-solid fa-pen-to-square"></i>
+              </button>
+              <button class="favorite-btn" title="${image.favorite ? "Remove from favorites" : "Add to favorites"}">
+                <i class="${starIcon}" ></i>
+              </button>
+            </div>
+          </div>
           <div class="gallery-item-meta">
             <span>${image.uploadedAt.split('T')[0]}</span>
             <span>${image.size}</span>
@@ -945,19 +915,20 @@ document.addEventListener("DOMContentLoaded", () => {
 
       // Add event listeners
       const viewBtn = galleryItem.querySelector(".view-btn")
-      const editBtn = galleryItem.querySelector(".edit-btn")
+      // const editBtn = galleryItem.querySelector(".edit-btn")
       const downloadBtn = galleryItem.querySelector(".download-btn")
       const favoriteBtn = galleryItem.querySelector(".favorite-btn")
+      const editNameBtn = galleryItem.querySelector(".edit-name-btn")
 
       viewBtn.addEventListener("click", (e) => {
         e.stopPropagation()
         openPreviewModal(image)
       })
 
-      editBtn.addEventListener("click", (e) => {
-        e.stopPropagation()
-        switchView("editor")
-      })
+      // editBtn.addEventListener("click", (e) => {
+      //   e.stopPropagation()
+      //   switchView("editor")
+      // })
 
       downloadBtn.addEventListener("click", (e) => {
         e.stopPropagation()
@@ -967,6 +938,21 @@ document.addEventListener("DOMContentLoaded", () => {
       favoriteBtn.addEventListener("click", (e) => {
         e.stopPropagation()
         toggleFavorite(image._id)
+      })
+
+      favoriteBtn.addEventListener("mouseover", (e) => {
+        e.stopPropagation()
+        favoriteBtn.querySelector('i').className= starIcon_reverse
+      })
+
+      favoriteBtn.addEventListener("mouseout", (e) => {
+        e.stopPropagation()
+        favoriteBtn.querySelector('i').className= starIcon
+      })
+
+      editNameBtn.addEventListener("click", (e) => {
+        e.stopPropagation()
+        startEditingName(galleryItem, image)
       })
 
       // Click on the item to preview
@@ -980,7 +966,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // Set preview image details
     previewImage.src = `data:${image.mimeType};base64,${image.image}`
     // previewImageTitle.textContent = image.title
-    previewImageDate.textContent = image.uploadedAt
+    previewImageDate.textContent = image.uploadedAt.split('T')[0]
     previewImageSize.textContent = image.size
     previewImageDimensions.textContent = image.dimensions
 
@@ -1121,5 +1107,144 @@ document.addEventListener("DOMContentLoaded", () => {
           showUploadStatus(errorMsg, "error");
       }
   }
+  }
+
+  function startEditingName(galleryItem, image) {
+    // Get the title container and current title element
+    const titleContainer = galleryItem.querySelector(".title-container")
+    const titleElement = galleryItem.querySelector(".gallery-item-title")
+    const currentTitle = titleElement.textContent
+
+    // Create an input field for editing
+    const inputField = document.createElement("input")
+    inputField.type = "text"
+    inputField.value = currentTitle
+    inputField.className = "edit-title-input"
+
+    // Create save button
+    const saveButton = document.createElement("button")
+    saveButton.className = "save-title-btn"
+    saveButton.innerHTML = '<i class="fas fa-check"></i>'
+    saveButton.title = "Save"
+
+    // Create cancel button
+    const cancelButton = document.createElement("button")
+    cancelButton.className = "cancel-title-btn"
+    cancelButton.innerHTML = '<i class="fas fa-times"></i>'
+    cancelButton.title = "Cancel"
+
+    // Create container for the buttons
+    const buttonContainer = document.createElement("div")
+    buttonContainer.className = "edit-title-buttons"
+    buttonContainer.appendChild(saveButton)
+    buttonContainer.appendChild(cancelButton)
+
+    // Replace the title with the input field and buttons
+    titleContainer.innerHTML = ""
+    titleContainer.appendChild(inputField)
+    titleContainer.appendChild(buttonContainer)
+
+    // Focus the input field
+    inputField.focus()
+    inputField.select()
+
+    // Prevent clicks on the input from triggering the gallery item click
+    inputField.addEventListener("click", (e) => {
+      e.stopPropagation()
+    })
+
+    // Handle save button click
+    saveButton.addEventListener("click", (e) => {
+      e.stopPropagation()
+      saveImageName(galleryItem, image, inputField.value)
+    })
+
+    // Handle cancel button click
+    cancelButton.addEventListener("click", (e) => {
+      e.stopPropagation()
+      cancelEditingName(galleryItem, image)
+    })
+
+    // Handle Enter key press
+    inputField.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault()
+        saveImageName(galleryItem, image, inputField.value)
+      } else if (e.key === "Escape") {
+        e.preventDefault()
+        cancelEditingName(galleryItem, image)
+      }
+    })
+  }
+
+  async function saveImageName(galleryItem, image, newName) {
+    // Trim the new name
+    newName = newName.trim()
+    // If the new name is empty, revert to the original name
+    if (!newName) {
+      cancelEditingName(galleryItem, image)
+      return
+    }
+    // Update the image title in our data
+    const imageIndex = galleryImages.findIndex((img) => img._id === image._id)
+    
+    if (imageIndex !== -1) {
+
+      try {
+        const token = localStorage.getItem('authToken');
+        const response = await axios.put('/api/users/title',
+          { _id: image._id,
+            title: newName,
+          },
+          {
+            headers: {
+              'authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+
+        galleryImages[imageIndex].title = newName
+
+        // Update the title in the DOM
+        const titleContainer = galleryItem.querySelector(".title-container")
+        titleContainer.innerHTML = `
+        <h3 class="gallery-item-title">${newName}</h3>
+        <button class="edit-name-btn" title="Edit name">
+          <i class="fa-solid fa-pen-to-square"></i>
+        </button>
+        `
+
+        // Re-add event listener to the edit button
+        const editNameBtn = titleContainer.querySelector(".edit-name-btn")
+        editNameBtn.addEventListener("click", (e) => {
+          e.stopPropagation()
+          startEditingName(galleryItem, galleryImages[imageIndex])
+        })
+
+      } catch (error) {
+        console.error("Error update image:", error);
+        const errorMsg = error.response?.data?.error || "Unable to update image title";
+        showUploadStatus(errorMsg, "error");
+      }
+    }
+  }
+
+  function cancelEditingName(galleryItem, image) {
+    // Restore the original title element
+    const titleContainer = galleryItem.querySelector(".title-container")
+    titleContainer.innerHTML = `
+    <h3 class="gallery-item-title">${image.title}</h3>
+    <button class="edit-name-btn" title="Edit name">
+      <i class="fa-solid fa-pen-to-square"></i>
+    </button>
+  `
+
+    // Re-add event listener to the edit button
+    const editNameBtn = titleContainer.querySelector(".edit-name-btn")
+    editNameBtn.addEventListener("click", (e) => {
+      e.stopPropagation()
+      startEditingName(galleryItem, image)
+    })
   }
 })

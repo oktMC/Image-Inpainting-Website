@@ -207,13 +207,12 @@ h1 {
 
 /* Upload container styles */
 .upload-container {
-  background-color: #fff;
+  background-color: #ffffff;
   border-radius: 10px;
   box-shadow: rgba(0, 0, 0, 0.56) 0px 22px 70px 4px;
   padding: 1.5rem;
   margin-bottom: 2rem;
   margin: 0 auto;
-
 }
 
 /* Toolbar styles */
@@ -1065,5 +1064,99 @@ footer {
   .gallery-grid {
     grid-template-columns: 1fr;
   }
+}
+
+.favorite-btn-container{
+  text-align: right;
+  display: flex;
+}
+
+.favorite-btn{
+  border: none;
+  padding: 0.25rem;
+  cursor:pointer;
+}
+
+/*Styles for the edit name functionality */
+.title-container {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 0; /* Needed for text-overflow to work */
+}
+
+.gallery-item-title {
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+}
+
+.edit-name-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #6c757d;
+  transition: color 0.2s ease;
+  padding: 0.25rem;
+  font-size: 0.875rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.7;
+}
+
+.edit-name-btn:hover {
+  color: #4a6cf7;
+  opacity: 1;
+}
+
+.edit-title-input {
+  flex: 1;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  min-width: 0;
+}
+
+.edit-title-input:focus {
+  outline: none;
+  border-color: #4a6cf7;
+  box-shadow: 0 0 0 2px rgba(74, 108, 247, 0.1);
+}
+
+.edit-title-buttons {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.save-title-btn,
+.cancel-title-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.save-title-btn {
+  color: #28a745;
+}
+
+.save-title-btn:hover {
+  color: #218838;
+}
+
+.cancel-title-btn {
+  color: #dc3545;
+}
+
+.cancel-title-btn:hover {
+  color: #c82333;
 }
 
