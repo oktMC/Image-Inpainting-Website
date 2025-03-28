@@ -44,13 +44,44 @@ document.addEventListener("DOMContentLoaded", () => {
   const showSignupLink = document.getElementById("show-signup-link")
   const backToLoginBtn = document.getElementById("back-to-login-btn")
 
+  // Add these elements to the top with the other element declarations
+  const navLinks = document.querySelectorAll(".nav-links a")
+  const editorView = document.getElementById("editor-view")
+  const galleryView = document.getElementById("gallery-view")
+  const galleryGrid = document.getElementById("gallery-grid")
+  const galleryEmpty = document.getElementById("gallery-empty")
+  const searchInput = document.getElementById("search-gallery")
+  const filterSelect = document.getElementById("filter-gallery")
+  const goToUploadBtn = document.getElementById("go-to-upload-btn")
+
+  // Preview modal elements
+  const imagePreviewModal = document.getElementById("image-preview-modal")
+  const previewImage = document.getElementById("preview-image")
+  const previewImageTitle = document.getElementById("preview-image-title")
+  const previewImageDate = document.getElementById("preview-image-date")
+  const previewImageSize = document.getElementById("preview-image-size")
+  const previewImageDimensions = document.getElementById("preview-image-dimensions")
+  const closePreviewBtn = document.getElementById("close-preview-btn")
+  const editImageBtn = document.getElementById("edit-image-btn")
+  const downloadPreviewBtn = document.getElementById("download-preview-btn")
+  const deleteImageBtn = document.getElementById("delete-image-btn")
+
   // Variables
   let currentFile = null
   let activeTool = null
   let activeMode = null
   let isLoggedIn = false
   let { scrollTop } = document.documentElement;
+  let uploadStatusTimeout = null;
+  let processedImageID = null;
 
+  // Add these variables to the variables section
+  let currentView = "editor"
+  let galleryImages = []
+  let currentFilter = "all"
+  let searchQuery = ""
+
+  silentLogin()
   // Event Listeners
 
   // Event listener for the checkbox
@@ -98,7 +129,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // Modal event listeners
   closeModalBtn.addEventListener("click", closeModal)
   backBtn.addEventListener("click", closeModal)
-  downloadBtn.addEventListener("click", downloadImage)
+  downloadBtn.addEventListener("click", downloadImageResult)
   saveGalleryBtn.addEventListener("click", saveToGallery) 
 
   // Tool button event listeners
@@ -128,6 +159,58 @@ document.addEventListener("DOMContentLoaded", () => {
         resetMagicWand()
       }
     })
+  })
+
+  navLinks.forEach((link) => {
+    link.addEventListener("click", (e) => {
+      e.preventDefault()
+      const view = link.getAttribute("data-view")
+      if (view) {
+        switchView(view)
+      }
+    })
+  })
+
+  // Go to upload button
+  goToUploadBtn.addEventListener("click", () => {
+    switchView("editor")
+  })
+
+  // Search input
+  searchInput.addEventListener("input", (e) => {
+    searchQuery = e.target.value.toLowerCase()
+    filterGalleryImages()
+  })
+
+  // Filter select
+  filterSelect.addEventListener("change", (e) => {
+    currentFilter = e.target.value
+    filterGalleryImages()
+  })
+
+  // Preview modal
+  closePreviewBtn.addEventListener("click", closePreviewModal)
+  imagePreviewModal.addEventListener("click", (e) => {
+    if (e.target === imagePreviewModal) {
+      closePreviewModal()
+    }
+  })
+
+  // Preview actions
+  editImageBtn.addEventListener("click", () => {
+    closePreviewModal()
+    switchView("editor")
+  })
+
+  downloadPreviewBtn.addEventListener("click", downloadPreviewImage)
+
+  deleteImageBtn.addEventListener("click", () => {
+    if (confirm("Are you sure you want to delete this image?")) {
+      // In a real app, this would send a request to delete the image
+      alert("Image deleted successfully!")
+      closePreviewModal()
+      loadGalleryImages() // Reload the gallery
+    }
   })
 
   modeButtons.forEach((button) => {
@@ -436,7 +519,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // Display the processed image
         const imageUrl = URL.createObjectURL(response.data);
-
+        processedImageID = response.headers['x-processed-image-id']
         // imagePreview.src = imageUrl;
         processedImage.src = imageUrl
 
@@ -473,13 +556,22 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Re-enable the upload button
     uploadBtn.disabled = false
+    saveGalleryBtn.disabled = false;
   }
 
-  function showUploadStatus(message, type) {
+  //type: success/error
+  function showUploadStatus(message, type) { 
     uploadStatus.textContent = message
     uploadStatus.className = "upload-status"
     uploadStatus.classList.add(type)
     uploadStatus.style.display = "block"
+
+    uploadStatusTimeout = setTimeout(() => {
+      uploadStatus.classList.remove(type);
+      uploadStatus.textContent = "";
+      uploadStatus.style.display = "none"; // Optional: Hide after clearing
+      uploadStatusTimeout = null; // Reset the timeout ID
+    }, 5000); 
   }
 
   function setMagicWandCursor() {
@@ -513,7 +605,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (e.keyCode == 17) document.getElementById("resultCanvas").classList.remove("add-mode");
   }
   
-  function downloadImage() {
+  function downloadImageResult() {
     // Create a temporary link element
     const link = document.createElement("a")
     link.href = processedImage.src
@@ -525,11 +617,6 @@ document.addEventListener("DOMContentLoaded", () => {
     document.body.removeChild(link)
   }
 
-  function saveToGallery() {
-    // This would typically involve sending the image to your backend
-    // to save it in the user's gallery
-    alert("Image saved to gallery! (This is a placeholder - actual gallery functionality would be implemented later)")
-  }
   function toggleAuth() {
     if (isLoggedIn) {
       // Log out
@@ -539,7 +626,7 @@ document.addEventListener("DOMContentLoaded", () => {
       showUploadStatus("You have been logged out.", "success")
     } else {
       // Show login modal
-      silentLogin()
+      openLoginModal()
     }
   }
 
@@ -656,7 +743,7 @@ document.addEventListener("DOMContentLoaded", () => {
         // Axios request with Bearer token
         const response = await axios.get('/api/validate-token', {
           headers: {
-            'Authorization': `Bearer ${token}`
+            'authorization': `Bearer ${token}`
           }
         });
   
@@ -664,16 +751,12 @@ document.addEventListener("DOMContentLoaded", () => {
         if (isValid) {
           isLoggedIn = true;
           updateAuthIcon();
-          showUploadStatus(`Welcome back, ${username}!`, "success");
-          
-        } else {
-          openLoginModal()
+          // showUploadStatus(`Welcome back, ${username}!`, "success");
         }
       } catch (error) {
         if (axios.isAxiosError(error)) {
           if (error.response?.status === 401) {
             console.error("Token expired or invalid");
-            openLoginModal()
           } else {
             console.error("Network error:", error.message);
           }
@@ -681,8 +764,322 @@ document.addEventListener("DOMContentLoaded", () => {
             console.error("Unexpected error:", error);
         }
       }
-    } else {
-      openLoginModal()
+    } 
+  }
+  
+  // Add these functions to the end of the file
+  function switchView(view) {
+    // Update current view
+    currentView = view
+
+    // Update navigation
+    navLinks.forEach((link) => {
+      if (link.getAttribute("data-view") === view) {
+        link.classList.add("active")
+      } else {
+        link.classList.remove("active")
+      }
+    })
+
+    // Show/hide views
+    if (view === "editor") {
+      editorView.style.display = "block"
+      galleryView.style.display = "none"
+    } else if (view === "gallery") {
+      editorView.style.display = "none"
+      galleryView.style.display = "block"
+
+      // Load gallery images
+      loadGalleryImages()
     }
+  }
+
+  async function loadGalleryImages() {
+    // In a real app, this would fetch images from a server
+    // For this demo, we'll use sample data
+
+    // Clear existing images
+    galleryGrid.innerHTML = ""
+
+    if (isLoggedIn) {
+      // Sample user gallery data
+      try{
+        const token = localStorage.getItem('authToken')
+        const response = await axios.get('/api/gallery',{
+          headers: {
+            'authorization': `Bearer ${token}`,
+        },
+      })
+        galleryImages = response.data.image
+        console.log(galleryImages)
+      } catch (error){
+        console.error("Error saving image:", error);
+        const errorMsg = error.response?.data?.error || "Failed to load image";
+        showUploadStatus(errorMsg, "error");
+      }
+      // galleryImages = [
+      //   {
+      //     src: "/placeholder.svg?height=300&width=400",
+      //     date: "March 15, 2024",
+      //     size: "2.4 MB",
+      //     dimensions: "1920 x 1080",
+      //     type: "edited",
+      //   },
+      //   {
+      //     src: "/placeholder.svg?height=300&width=400",
+      //     date: "March 10, 2024",
+      //     size: "1.8 MB",
+      //     dimensions: "1600 x 900",
+      //     type: "favorites",
+      //   },
+      //   {
+      //     src: "/placeholder.svg?height=300&width=400",
+      //     date: "March 5, 2024",
+      //     size: "3.2 MB",
+      //     dimensions: "2560 x 1440",
+      //     type: "recent",
+      //   },
+      //   {
+      //     src: "/placeholder.svg?height=300&width=400",
+      //     date: "February 28, 2024",
+      //     size: "1.5 MB",
+      //     dimensions: "1280 x 720",
+      //     type: "edited",
+      //   },
+      //   {
+      //     src: "/placeholder.svg?height=300&width=400",
+      //     date: "February 20, 2024",
+      //     size: "2.1 MB",
+      //     dimensions: "1920 x 1080",
+      //     type: "favorites",
+      //   },
+      //   {
+      //     src: "/placeholder.svg?height=300&width=400",
+      //     date: "February 15, 2024",
+      //     size: "2.7 MB",
+      //     dimensions: "2048 x 1152",
+      //     type: "recent",
+      //   },
+      // ]
+      // Show gallery, hide empty state
+      galleryGrid.style.display = "grid"
+      galleryEmpty.style.display = "none"
+
+      // Filter and render images
+      filterGalleryImages()
+    } else {
+      // User not logged in, show empty state
+      galleryImages = []
+      galleryGrid.style.display = "none"
+      galleryEmpty.style.display = "block"
+      goToUploadBtn.style.display = 'none';
+      showUploadStatus("Plesae Login","error")
+    }
+  }
+
+  function filterGalleryImages() {
+    // Filter images based on search query and filter type
+    const filteredImages = galleryImages.filter((image) => {
+      // Search filter
+      // const matchesSearch = image.title.toLowerCase().includes(searchQuery)
+
+      // // Type filter
+      // const matchesType = currentFilter === "all" || image.type === currentFilter
+
+      // return matchesSearch && matchesType
+      return true
+    })
+
+    // Render filtered images
+    renderGalleryImages(filteredImages)
+  }
+
+  function renderGalleryImages(images) {
+    // Clear existing images
+    galleryGrid.innerHTML = ""
+
+    if (images.length === 0) {
+      // No images match the filters
+      galleryGrid.innerHTML = `
+        <div class="no-results" style="grid-column: 1 / -1; text-align: center; padding: 2rem 0;">
+          <p>No images match your search criteria.</p>
+        </div>
+      `
+      return
+    }
+
+    // Render each image
+    images.forEach((image) => {
+      const galleryItem = document.createElement("div")
+      galleryItem.className = "gallery-item"
+      // galleryItem.dataset.id = image.id
+
+      galleryItem.innerHTML = `
+        <div class="gallery-item-image">
+          <img src="data:image/jpeg;base64,${image.image}" alt="${image.title}">
+          <div class="gallery-item-overlay">
+            <div class="gallery-item-actions">
+              <button class="gallery-action-btn view-btn" title="View">
+                <i class="fas fa-eye"></i>
+              </button>
+              <button class="gallery-action-btn edit-btn" title="Edit">
+                <i class="fas fa-edit"></i>
+              </button>
+              <button class="gallery-action-btn download-btn" title="Download">
+                <i class="fas fa-download"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="gallery-item-info">
+          <h3 class="gallery-item-title">${image.title}</h3>
+          <div class="gallery-item-meta">
+            <span>${image.uploadedAt}</span>
+            <span>${image.size}</span>
+          </div>
+        </div>
+      `
+
+      // Add event listeners
+      const viewBtn = galleryItem.querySelector(".view-btn")
+      const editBtn = galleryItem.querySelector(".edit-btn")
+      const downloadBtn = galleryItem.querySelector(".download-btn")
+
+      viewBtn.addEventListener("click", (e) => {
+        e.stopPropagation()
+        openPreviewModal(image)
+      })
+
+      editBtn.addEventListener("click", (e) => {
+        e.stopPropagation()
+        switchView("editor")
+      })
+
+      downloadBtn.addEventListener("click", (e) => {
+        e.stopPropagation()
+        downloadGalleryImage(image)
+      })
+
+      // Click on the item to preview
+      galleryItem.addEventListener("click", () => openPreviewModal(image))
+
+      galleryGrid.appendChild(galleryItem)
+    })
+  }
+
+  function openPreviewModal(image) {
+    // Set preview image details
+    previewImage.src = `data:${image.mimeType};base64,${image.image}`
+    // previewImageTitle.textContent = image.title
+    previewImageDate.textContent = image.uploadedAt
+    previewImageSize.textContent = image.size
+    previewImageDimensions.textContent = image.dimensions
+
+    // Show the modal
+    imagePreviewModal.classList.add("active")
+
+    // Prevent body scrolling
+    document.body.style.overflow = "hidden"
+  }
+
+  function closePreviewModal() {
+    imagePreviewModal.classList.remove("active")
+    document.body.style.overflow = ""
+  }
+
+  function downloadPreviewImage() {
+    const link = document.createElement("a");
+    
+    // 1. Extract MIME type from src (e.g., "image/png")
+    const mimeType = previewImage.src.match(/^data:(image\/\w+);/)?.[1] || 'image/png';
+    const extension = mimeType.split('/')[1]; // "png", "jpeg", etc.
+    
+    // 2. Generate filename with correct extension
+    const filename = `${previewImageTitle.textContent || 'image'}.${extension}`;
+    
+    // 3. Set up download
+    link.href = previewImage.src;
+    link.download = filename;
+    
+    // 4. Trigger download
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
+  function downloadGalleryImage(image) {
+    try {
+      const link = document.createElement("a");
+      
+      // 1. Extract extension from MIME type (priority) or fallback
+      const getExtension = () => {
+        if (image.mimeType) return image.mimeType.split('/')[1]; // "image/jpeg" → "jpeg"
+        if (image.src?.match(/^data:image\/\w+;/)) { // Parse Base64 prefix
+          return image.src.match(/^data:image\/(\w+);/)[1];
+        }
+        return 'png'; // Default fallback
+      };
+  
+      // 2. Generate safe filename
+      const sanitize = (name) => name.replace(/[^a-z0-9\-_]/gi, '_').toLowerCase();
+      const filename = `${sanitize(image.title || 'image')}.${getExtension()}`;
+  
+      // 3. Prepare download URL
+      const src = image.image 
+        ? `data:${image.mimeType || 'image/png'};base64,${image.image}` // Construct Base64
+        : image.src; // Use direct URL
+  
+      // 4. Configure link
+      link.href = src;
+      link.download = filename;
+      link.rel = 'noopener noreferrer'; // Security for external URLs
+      link.style.display = 'none';
+  
+      // 5. Trigger download
+      document.body.appendChild(link);
+      link.click();
+      
+      // 6. Cleanup
+      setTimeout(() => {
+        document.body.removeChild(link);
+        if (link.href.startsWith('blob:')) URL.revokeObjectURL(link.href);
+      }, 100);
+  
+    } catch (error) {
+      console.error('Download failed:', error);
+      alert(`Download error: ${error.message}`);
+    }
+  }
+
+  // Modify the saveToGallery function to add the image to the gallery
+  async function saveToGallery() {
+    // In a real app, this would send the image to your backend
+    // For this demo, we'll add it to our local gallery
+    if(!isLoggedIn){
+      showUploadStatus("Please login to use Gallery","error")
+      return;
+    }
+    const token = localStorage.getItem('authToken');
+    if (processedImage.src) {
+      try {
+          // Get dimensions from the processed image
+          console.log(localStorage.getItem('authToken'))
+          // Send data to server using Axios
+          const response = await axios.post('/api/save', {
+              processedImageID: processedImageID,
+          }, {
+              headers: {
+                  'Content-Type': 'application/json',
+                  'authorization': `Bearer ${token}`,
+              },
+          });
+          saveGalleryBtn.disabled = true;
+          showUploadStatus("Image saved to gallery!", "success");
+      } catch (error) {
+          console.error("Error saving image:", error);
+          const errorMsg = error.response?.data?.error || "Failed to save image";
+          showUploadStatus(errorMsg, "error");
+      }
+  }
   }
 })

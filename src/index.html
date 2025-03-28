@@ -15,8 +15,8 @@
       </div>
       <nav>
         <ul class="nav-links">
-          <li><a href="#" class="active">Home</a></li>
-          <li><a href="#">Gallery</a></li>
+          <li><a href="#" class="active" data-view="editor">Home</a></li>
+          <li><a href="#" data-view="gallery">Gallery</a></li>
           <!-- <li><a href="#">About</a></li>
           <li><a href="#">Contact</a></li> -->
         </ul>
@@ -40,7 +40,7 @@
     <div class="container">
       <h1>Image Upload & Edit</h1>
       
-      <div class="upload-container">
+      <div class="upload-container" id="editor-view">
         <div class="toolbar">
           <button class="tool-btn" id="crop-tool" title="Crop">
             <i class="fa-solid fa-paintbrush"></i>
@@ -83,8 +83,55 @@
           <button class="btn btn-primary" id="upload-btn" disabled>Inpaint</button>
         </div>
         
-        <div class="upload-status" id="upload-status"></div>
       </div>
+
+      <!-- Gallery View -->
+      <div class="gallery-container" id="gallery-view" style="display: none;">
+        <h1>Your Gallery</h1>
+        
+        <div class="gallery-controls">
+          <div class="gallery-search">
+            <input type="text" id="search-gallery" placeholder="Search images...">
+            <button class="search-btn">
+              <i class="fas fa-search"></i>
+            </button>
+          </div>
+          <div class="gallery-filter">
+            <select id="filter-gallery">
+              <option value="all">All Images</option>
+              <option value="recent">Recently Added</option>
+              <option value="edited">Edited</option>
+              <option value="favorites">Favorites</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="gallery-grid" id="gallery-grid">
+          <!-- Gallery items will be populated here -->
+        </div>
+        
+        <div class="gallery-empty" id="gallery-empty" style="display: none;">
+          <div class="empty-message">
+            <i class="fas fa-images"></i>
+            <h3>No images in your gallery yet</h3>
+            <p>Upload and edit images to see them here</p>
+            <button class="btn btn-primary" id="go-to-upload-btn">Upload Images</button>
+          </div>
+        </div>
+        
+        <div class="gallery-pagination">
+          <button class="pagination-btn" disabled>
+            <i class="fas fa-chevron-left"></i>
+          </button>
+          <span class="pagination-info">Page 1 of 1</span>
+          <button class="pagination-btn" disabled>
+            <i class="fas fa-chevron-right"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="upload-status" id="upload-status"></div>
+
     </div>
   </main>
   
@@ -110,7 +157,7 @@
         </div>
         <div class="image-result-wrapper">
           <div class="processed-image-container">
-            <img id="processed-image" alt="Processed image">
+            <img id="processed-image" src="/placeholder.svg" alt="Processed image">
             <div class="image-actions">
               <button id="download-btn" class="action-btn" title="Download Image">
                 <i class="fas fa-download"></i>
@@ -183,6 +230,39 @@
           <button type="button" class="btn btn-secondary" id="back-to-login-btn">Back to Login</button>
         </div>
       </form>
+    </div>
+  </div>
+  
+  <!-- Image Preview Modal -->
+  <div class="modal" id="image-preview-modal">
+    <div class="modal-content image-preview-modal-content">
+      <div class="modal-header">
+        <h2 id="preview-image-title">Image Preview</h2>
+        <button class="close-btn" id="close-preview-btn">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="image-preview-wrapper">
+        <img id="preview-image" src="/placeholder.svg" alt="Preview">
+      </div>
+      <div class="image-preview-info">
+        <div class="image-metadata">
+          <p><strong>UploadedAt:</strong> <span id="preview-image-date">January 1, 2024</span></p>
+          <p><strong>Size:</strong> <span id="preview-image-size">1.2 MB</span></p>
+          <p><strong>Dimensions:</strong> <span id="preview-image-dimensions">1920 x 1080</span></p>
+        </div>
+        <div class="image-preview-actions">
+          <button class="btn btn-primary" id="edit-image-btn">
+            <i class="fas fa-edit"></i> Edit
+          </button>
+          <button class="btn btn-secondary" id="download-preview-btn">
+            <i class="fas fa-download"></i> Download
+          </button>
+          <button class="btn btn-danger" id="delete-image-btn">
+            <i class="fas fa-trash"></i> Delete
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 

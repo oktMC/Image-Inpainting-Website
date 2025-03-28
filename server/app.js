@@ -7,7 +7,10 @@ const jwt = require('jsonwebtoken');
 const multer = require('multer')
 const path = require('path')
 const fs = require('fs')
+const fsPromises = require('fs').promises;
 const { spawn } = require('child_process')
+const { v4: uuidv4 } = require('uuid');
+const sharp = require('sharp');
 
 const logger = require('./logger');
 const verifyToken = require('./JWT')
@@ -34,6 +37,10 @@ const userSchema = new mongoose.Schema({
 const gallerySchema = new mongoose.Schema({
     username: { type: String, required: true },
     image: { type: String, required: true },
+    size: {type: String}, //1.8 MB
+    dimensions: {type: String}, //1920 x 1080
+    favorite : {type: Boolean, default: false},
+    mimeType: {type: String, required: true}, // "image/jpeg", "image/png"
     uploadedAt: { type: Date, default: Date.now }
   });
 
@@ -93,8 +100,9 @@ app.post('/process/:mode', upload.single('image'), async (req, res) => {
         const mask = req.body.mask
         const {mode} = req.params
 
+        const processedImageId = uuidv4();
         const pythonScriptPath = path.resolve(__dirname, '../../test.py');
-        const outputImagePath = path.join(__dirname, `./processed_Image/${req.fileName}_processed${req.fileExtension}`);
+        const outputImagePath = path.join(__dirname, `./processed_Image/${processedImageId}${req.fileExtension}`);
 
         const python = spawn('python', [pythonScriptPath, imagePath, outputImagePath, mode]);
 
@@ -123,15 +131,15 @@ app.post('/process/:mode', upload.single('image'), async (req, res) => {
 
                 const contentType = mimeTypes[req.fileExtension.toLowerCase()] || 'application/octet-stream';
 
-                res.set('Content-Type', contentType);
+                res.setHeader('Content-Type', contentType);
+                res.setHeader('X-Processed-Image-ID', processedImageId); 
                 res.sendFile(outputImagePath, (err) => {
                     // Clean up temporary files
                     if (err) {
                         console.error('Error sending file:', err);
                         res.status(500).send('Failed to send file.');
                     } else {
-                        fs.unlink(imagePath, () => {});
-                        fs.unlink(outputImagePath, () => {});
+                        fsPromises.unlink(imagePath, () => {});
                     }
                 });
             } else {
@@ -206,21 +214,44 @@ app.get('/api/user', verifyToken, async (req, res) => {
     }
 });
 
-app.post('/api/upload', express.json(), verifyToken, async(req,res) => {
+app.post('/api/save', express.json(), verifyToken, async(req,res) => {
     try {
         const user = await User.findOne({ username: req.user.username });
+        const processedImageID = req.body.processedImageID;
         if (!user) {
             return res.status(404).json({ error: 'User not found' });
         }
-        if (!req.body.image) {
-            return res.status(400).json({ error: 'Image data is required' });
+
+        if (!processedImageID) {
+            return res.status(400).json({ error: 'ImageID is required' });
         }
+        const tempDir = path.join(__dirname, './processed_Image');
+        const files = await fsPromises.readdir(tempDir);
+        const matchingFile = files.find(file => file.startsWith(processedImageID));
+        
+        if (!matchingFile) {
+            return res.status(404).json({ error: 'Processed image not found.' });
+        }
+
+        const tempImagePath = path.join(tempDir, matchingFile);
+
+        const imageBuffer = await fsPromises.readFile(tempImagePath);
+        const base64Image = imageBuffer.toString('base64');
+
+        const { width, height, size } = await sharp(imageBuffer).metadata();
+
         const newImage = new Gallery({
             username: req.user.username,
-            image: req.body.image
+            image: base64Image,
+            mimeType: `image/${path.extname(tempImagePath).slice(1)}`,
+            size: `${Math.round(size / 1024)} KB`,
+            dimensions: `${width} x ${height}`,
         })
         await newImage.save();
-        res.status(201).json({ message: 'Upload successfully' });
+
+        await fsPromises.unlink(tempImagePath);
+
+        res.status(201).json({ message: 'Image saved to gallery!' });
     } catch (error) {
         console.error('Error uploading image:', error);
         res.status(500).json({ error: 'Internal server error' });
@@ -229,7 +260,7 @@ app.post('/api/upload', express.json(), verifyToken, async(req,res) => {
 
 app.get('/api/gallery', verifyToken, async (req,res) => {
     try {
-        const image = await Gallery.find({ username: req.user.username }).select("image");
+        const image = await Gallery.find({ username: req.user.username }).select("-username -__v");
         if (image.length === 0) {
             return res.status(404).json({ error: 'No images found for this user' });
         }

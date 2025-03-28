@@ -209,10 +209,11 @@ h1 {
 .upload-container {
   background-color: #fff;
   border-radius: 10px;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+  box-shadow: rgba(0, 0, 0, 0.56) 0px 22px 70px 4px;
   padding: 1.5rem;
   margin-bottom: 2rem;
   margin: 0 auto;
+
 }
 
 /* Toolbar styles */
@@ -415,10 +416,17 @@ h1 {
 
 /* Upload status styles */
 .upload-status {
-  margin-top: 1rem;
+  position: fixed;
+  top: 760px;
   padding: 0.75rem;
   border-radius: 6px;
+  width: fit-content;
   display: none;
+  z-index: 2002;
+  text-align:center;
+  max-width: 80%;
+  left: 50%;
+  transform: translateX(-50%);
 }
 
 .upload-status.success {
@@ -726,6 +734,331 @@ footer {
 
   .processed-image-container img {
     max-height: 50vh;
+  }
+}
+
+.gallery-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.gallery-search {
+  display: flex;
+  flex: 1;
+  max-width: 400px;
+  position: relative;
+}
+
+.gallery-search input {
+  width: 100%;
+  padding: 0.75rem;
+  padding-right: 3rem;
+  border: 1px solid #ced4da;
+  border-radius: 6px;
+  font-size: 1rem;
+  transition: border-color 0.2s ease;
+}
+
+.gallery-search input:focus {
+  outline: none;
+  border-color: #4a6cf7;
+  box-shadow: 0 0 0 3px rgba(74, 108, 247, 0.1);
+}
+
+.search-btn {
+  position: absolute;
+  right: 0;
+  top: 0;
+  height: 100%;
+  width: 3rem;
+  background: none;
+  border: none;
+  color: #6c757d;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.search-btn:hover {
+  color: #4a6cf7;
+}
+
+.gallery-filter select {
+  padding: 0.75rem;
+  border: 1px solid #ced4da;
+  border-radius: 6px;
+  font-size: 1rem;
+  background-color: #fff;
+  cursor: pointer;
+  min-width: 150px;
+}
+
+.gallery-filter select:focus {
+  outline: none;
+  border-color: #4a6cf7;
+  box-shadow: 0 0 0 3px rgba(74, 108, 247, 0.1);
+}
+
+/* Gallery grid */
+.gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.gallery-item {
+  background-color: #fff;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  cursor: pointer;
+}
+
+.gallery-item:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+}
+
+.gallery-item-image {
+  position: relative;
+  width: 100%;
+  height: 0;
+  padding-bottom: 75%; /* 4:3 aspect ratio */
+  overflow: hidden;
+}
+
+.gallery-item-image img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.gallery-item:hover .gallery-item-image img {
+  transform: scale(1.05);
+}
+
+.gallery-item-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.3);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.gallery-item:hover .gallery-item-overlay {
+  opacity: 1;
+}
+
+.gallery-item-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.gallery-action-btn {
+  background-color: rgba(255, 255, 255, 0.9);
+  border: none;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s ease;
+  color: #495057;
+}
+
+.gallery-action-btn:hover {
+  background-color: #4a6cf7;
+  color: white;
+}
+
+.gallery-item-info {
+  padding: 1rem;
+}
+
+.gallery-item-title {
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: #343a40;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.gallery-item-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.875rem;
+  color: #6c757d;
+}
+
+/* Empty gallery state */
+.gallery-empty {
+  padding: 3rem 0;
+  text-align: center;
+}
+
+.empty-message {
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.empty-message i {
+  font-size: 4rem;
+  color: #ced4da;
+  margin-bottom: 1.5rem;
+}
+
+.empty-message h3 {
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+  color: #495057;
+}
+
+.empty-message p {
+  color: #6c757d;
+  margin-bottom: 1.5rem;
+}
+
+/* Pagination */
+.gallery-pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.pagination-btn {
+  background-color: #f8f9fa;
+  border: 1px solid #ced4da;
+  border-radius: 6px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background-color: #e9ecef;
+}
+
+.pagination-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pagination-info {
+  font-size: 0.875rem;
+  color: #6c757d;
+}
+
+/* Image preview modal */
+.image-preview-modal-content {
+  max-width: 900px;
+  padding: 0;
+}
+
+.image-preview-wrapper {
+  width: 100%;
+  max-height: 60vh;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #f8f9fa;
+}
+
+.image-preview-wrapper img {
+  max-width: 100%;
+  max-height: 60vh;
+  object-fit: contain;
+}
+
+.image-preview-info {
+  padding: 1.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  justify-content: space-between;
+}
+
+.image-metadata {
+  flex: 1;
+  min-width: 200px;
+}
+
+.image-metadata p {
+  margin-bottom: 0.5rem;
+  color: #495057;
+}
+
+.image-preview-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.btn-danger {
+  background-color: #dc3545;
+  color: white;
+}
+
+.btn-danger:hover {
+  background-color: #c82333;
+}
+
+/* Responsive gallery styles */
+@media (max-width: 768px) {
+  .gallery-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .gallery-search {
+    max-width: 100%;
+  }
+
+  .gallery-grid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  }
+
+  .image-preview-info {
+    flex-direction: column;
+  }
+
+  .image-preview-actions {
+    margin-top: 1rem;
+  }
+
+  .image-preview-actions .btn {
+    flex: 1;
+  }
+}
+
+@media (max-width: 480px) {
+  .gallery-grid {
+    grid-template-columns: 1fr;
   }
 }
 
