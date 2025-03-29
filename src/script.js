@@ -74,6 +74,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let { scrollTop } = document.documentElement;
   let uploadStatusTimeout = null;
   let processedImageID = null;
+  let savedGallery = false
 
   // Add these variables to the variables section
   let currentView = "editor"
@@ -514,9 +515,9 @@ document.addEventListener("DOMContentLoaded", () => {
         alert('Please select an image, a mode and a mask.');
         return;
     }
-    
     formData.append('image', currentFile , 'image.jpg');
     formData.append('mask', JSON.stringify(mask)); 
+    formData.append('isLoggedIn', isLoggedIn);
 
     openProcessingModal()
 
@@ -563,13 +564,30 @@ document.addEventListener("DOMContentLoaded", () => {
     disableScroll()
   }
 
-  function closeModal() {
+  async function closeModal() {
+    if (!savedGallery){
+      try {
+        const token = localStorage.getItem('authToken');
+        const response = await axios.delete('/api/nosave', {
+          data: { 
+              processedImageID: processedImageID 
+          },
+          headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+          }
+        });
+      } catch (error) {
+        console.error(error);
+      }
+    }
     processingModal.classList.remove("active")
     enableScroll()
 
     // Re-enable the upload button
     uploadBtn.disabled = false
     saveGalleryBtn.disabled = false;
+    savedGallery = false;
   }
 
   //type: success/error
@@ -930,7 +948,7 @@ document.addEventListener("DOMContentLoaded", () => {
         // Axios request with Bearer token
         const response = await axios.get('/api/validate-token', {
           headers: {
-            'authorization': `Bearer ${token}`
+            'Authorization': `Bearer ${token}`
           }
         });
   
@@ -991,7 +1009,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const token = localStorage.getItem('authToken')
         const response = await axios.get('/api/gallery',{
           headers: {
-            'authorization': `Bearer ${token}`,
+            'Authorization': `Bearer ${token}`,
         },
       })
         galleryImages = response.data.image
@@ -1248,7 +1266,7 @@ document.addEventListener("DOMContentLoaded", () => {
           },
           {
             headers: {
-              'authorization': `Bearer ${token}`,
+              'Authorization': `Bearer ${token}`,
               'Content-Type': 'application/json'
             }
           }
@@ -1284,11 +1302,12 @@ document.addEventListener("DOMContentLoaded", () => {
           }, {
               headers: {
                   'Content-Type': 'application/json',
-                  'authorization': `Bearer ${token}`,
+                  'Authorization': `Bearer ${token}`,
               },
           });
           saveGalleryBtn.disabled = true;
           showUploadStatus("Image saved to gallery!", "success");
+          savedGallery = true
       } catch (error) {
           console.error("Error saving image:", error);
           const errorMsg = error.response?.data?.error || "Failed to save image";
@@ -1386,7 +1405,7 @@ document.addEventListener("DOMContentLoaded", () => {
           },
           {
             headers: {
-              'authorization': `Bearer ${token}`,
+              'Authorization': `Bearer ${token}`,
               'Content-Type': 'application/json'
             }
           }

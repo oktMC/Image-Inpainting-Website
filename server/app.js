@@ -99,6 +99,7 @@ app.post('/process/:mode', upload.single('image'), async (req, res) => {
         // Step 1: Get the uploaded image and mask
         const imagePath = req.file.path;
         const mask = req.body.mask
+        const isLoggedIn = JSON.parse(req.body.isLoggedIn)
         const {mode} = req.params
 
         const processedImageId = uuidv4();
@@ -134,13 +135,14 @@ app.post('/process/:mode', upload.single('image'), async (req, res) => {
 
                 res.setHeader('Content-Type', contentType);
                 res.setHeader('X-Processed-Image-ID', processedImageId); 
-                res.sendFile(outputImagePath, (err) => {
+                res.sendFile(outputImagePath, async(err) => {
                     // Clean up temporary files
                     if (err) {
                         console.error('Error sending file:', err);
                         res.status(500).send('Failed to send file.');
                     } else {
                         fsPromises.unlink(imagePath, () => {});
+                        if (!isLoggedIn) { await fsPromises.unlink(outputImagePath)}
                     }
                 });
             } else {
@@ -219,7 +221,6 @@ app.post('/api/save', express.json(), verifyToken, async(req,res) => {
     try {
         const user = await User.findOne({ username: req.user.username });
         const processedImageID = req.body.processedImageID;
-        console.log(processedImageID)
         if (!user) {
             return res.status(404).json({ error: 'User not found' });
         }
@@ -384,6 +385,34 @@ app.put('/api/users/title', express.json(), verifyToken, async(req, res) => {
         res.status(500).json({ error: 'Failed to update title' });
     }
 });
+
+app.delete('/api/nosave',express.json(), verifyToken, async(req,res) => {
+    try{
+        const processedImageID = req.body.processedImageID;
+        if (!processedImageID) {
+            return res.status(400).json({ error: 'ImageID is required' });
+        }
+        const tempDir = path.join(__dirname, './processed_Image');
+        const files = await fsPromises.readdir(tempDir);
+        const matchingFile = files.find(file => file.startsWith(processedImageID));
+        
+        if (!matchingFile) {
+            return res.status(404).json({ error: 'Processed image not found.' });
+        }
+
+        const tempImagePath = path.join(tempDir, matchingFile);
+        await fsPromises.unlink(tempImagePath);
+
+        res.status(201).json({ message: 'Image deleted' });
+    } catch (error) {
+        console.error('Error in /api/nosave:', error);
+        if (error.code === 'ENOENT') {
+            res.status(404).json({ error: 'File not found' });
+        } else {
+            res.status(500).json({ error: 'Internal server error' });
+        }
+    }
+})
 
 app.listen(5000,()=>{
     console.log('server is listening port 5000')
