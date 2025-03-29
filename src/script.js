@@ -81,6 +81,12 @@ document.addEventListener("DOMContentLoaded", () => {
   let currentFilter = "all"
   let searchQuery = ""
 
+  // 
+  let isPainting = false
+  const brushSize = 10
+  let isCtrlPressed = false
+  let brushPreview = null
+
   silentLogin()
   // Event Listeners
 
@@ -134,32 +140,41 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Tool button event listeners
   toolButtons.forEach((button) => {
-    button.addEventListener("click", function () {
-      // Deactivate all tools
-      toolButtons.forEach((btn) => btn.classList.remove("active"))
+    button.addEventListener("click", function() {
+        // Deactivate all tools
+        toolButtons.forEach((btn) => btn.classList.remove("active"));
+        // If clicking the same tool, deactivate it
+        if (activeTool === this.id) {
+          activeTool = null;
+          if (this.id === "paint-tool") {
+              stopPainting();
+          }
+          if (this.id === "magic-wand-tool") {
+              resetMagicWand();
+          }
+          return;
+        }
+        
+        // Activate the clicked tool
+        this.classList.add("active");
+        if (activeTool) {
+          if (activeTool === "paint-tool") {
+              stopPainting();
+          } else if (activeTool === "magic-wand-tool") {
+              resetMagicWand();
+          }
+        }
 
-      // If clicking the same tool, deactivate it
-      if (activeTool === this.id) {
-        activeTool = null
-        resetCursor()
-        resetMagicWand()
-        return
-      }
+        activeTool = this.id;
 
-      // Activate the clicked tool
-      this.classList.add("active")
-      activeTool = this.id
+        if (this.id === "paint-tool") {
+          startPainting();
+        } else if (this.id === "magic-wand-tool") {
+          runMagicWand();
+        }
+    });
+  });
 
-      // Handle specific tool actions
-      if (this.id === "magic-wand-tool") {
-        setMagicWandCursor()
-        runMagicWand()
-      } else {
-        resetCursor()
-        resetMagicWand()
-      }
-    })
-  })
 
   navLinks.forEach((link) => {
     link.addEventListener("click", (e) => {
@@ -467,7 +482,6 @@ document.addEventListener("DOMContentLoaded", () => {
     modeButtons.forEach((btn) => btn.classList.remove("active"))
     activeMode = null
     mode = null
-    resetCursor()
     resetMagicWand()
   }
 
@@ -583,6 +597,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // imageOverlay.style.pointerEvents = "none"
   }
   function runMagicWand(){
+    canvas.classList.add("magic-wand-cursor")
     canvas.addEventListener("mouseup", onMouseUp);
     canvas.addEventListener("mousedown", onMouseDown);
     canvas.addEventListener("mousemove", onMouseMove);
@@ -591,9 +606,16 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function resetMagicWand(){
+    mask = null;
+    oldMask = null;
+    if (imageInfo && imageInfo.context) {
+        imageInfo.context.clearRect(0, 0, imageInfo.width, imageInfo.height);
+        imageInfo.context.drawImage(document.getElementById("image-preview"), 0, 0);
+    }
     canvas.removeEventListener("mouseup", onMouseUp);
     canvas.removeEventListener("mousedown", onMouseDown);
     canvas.removeEventListener("mousemove", onMouseMove);
+    canvas.classList.remove("magic-wand-cursor")
   }
 
   function onKeyDown(e) {
@@ -604,6 +626,173 @@ document.addEventListener("DOMContentLoaded", () => {
     if (e.keyCode == 17) document.getElementById("resultCanvas").classList.remove("add-mode");
   }
   
+  function startPainting() {
+    if (!imageInfo) return;
+    
+    // Create brush preview element if it doesn't exist
+    if (!brushPreview) {
+        brushPreview = document.createElement("div");
+        brushPreview.className = "brush-preview";
+        brushPreview.style.width = brushSize + "px";
+        brushPreview.style.height = brushSize + "px";
+        brushPreview.style.display = "none";
+        canvas.parentNode.appendChild(brushPreview);
+    }
+    
+    // Add event listeners for painting
+    canvas.addEventListener("mousedown", startBrushStroke);
+    canvas.addEventListener("mousemove", moveBrush);
+    canvas.addEventListener("mouseup", endBrushStroke);
+    canvas.addEventListener("mouseleave", endBrushStroke);
+    
+    // Add event listeners for Ctrl key
+    document.addEventListener("keydown", handleKeyDown);
+    document.addEventListener("keyup", handleKeyUp);
+    
+    // Position brush preview at cursor
+    // canvas.style.cursor = "none";
+    brushPreview.style.display = "block";
+  }
+
+  // Function to stop painting mode
+  function stopPainting() {
+    if (brushPreview) {
+        // brushPreview.style.display = "none";
+        // canvas.parentNode.removeChild(brushPreview)
+    }
+    
+    // Remove event listeners
+    canvas.removeEventListener("mousedown", startBrushStroke);
+    canvas.removeEventListener("mousemove", moveBrush);
+    canvas.removeEventListener("mouseup", endBrushStroke);
+    canvas.removeEventListener("mouseleave", endBrushStroke);
+    
+    document.removeEventListener("keydown", handleKeyDown);
+    document.removeEventListener("keyup", handleKeyUp);
+    
+    // Reset cursor
+    // canvas.style.cursor = "default";
+  }
+
+  // Function to handle mouse down for painting
+  function startBrushStroke(e) {
+    isPainting = true
+    paint(e)
+  }
+
+  // Function to handle mouse move for painting
+  function moveBrush(e) {
+    if (!brushPreview) return;
+    
+    // Get mouse position relative to the canvas
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    // Calculate the size based on whether Ctrl is pressed
+    const currentSize = isCtrlPressed ? brushSize * 2 : brushSize;
+    
+    // Update brush preview
+    brushPreview.style.width = currentSize + "px";
+    brushPreview.style.height = currentSize + "px";
+    brushPreview.style.left = (x - currentSize / 2) + "px";
+    brushPreview.style.top = (y - currentSize / 2) + "px";
+    
+    // Paint if mouse is pressed
+    if (isPainting) {
+        paint(e);
+    }
+  }
+
+  // Function to handle mouse up for painting
+  function endBrushStroke() {
+    isPainting = false
+  }
+
+  // Function to handle key down for Ctrl key
+  function handleKeyDown(e) {
+    if (e.key === "Control") {
+      isCtrlPressed = true
+
+      // Update brush preview size
+      if (brushPreview) {
+        const currentSize = brushSize * 2
+        brushPreview.style.width = currentSize + "px"
+        brushPreview.style.height = currentSize + "px"
+      }
+    }
+  }
+
+  // Function to handle key up for Ctrl key
+  function handleKeyUp(e) {
+    if (e.key === "Control") {
+      isCtrlPressed = false
+
+      // Update brush preview size
+      if (brushPreview) {
+        brushPreview.style.width = brushSize + "px"
+        brushPreview.style.height = brushSize + "px"
+      }
+    }
+  }
+
+  // Function to paint on the canvas
+  function paint(e) {
+    if (!imageInfo) return;
+    
+    const ctx = imageInfo.context;
+    const rect = canvas.getBoundingClientRect();
+    const x = Math.round(e.clientX - rect.left);
+    const y = Math.round(e.clientY - rect.top);
+    
+    const scaleX = canvas.width / canvas.offsetWidth;
+    const scaleY = canvas.height / canvas.offsetHeight;
+    const canvasX = Math.round(x * scaleX);
+    const canvasY = Math.round(y * scaleY);
+    const scaledSize = Math.round(brushSize * ((scaleX + scaleY) / 2));
+    
+    // Draw white circle
+    ctx.fillStyle = "white";
+    ctx.beginPath();
+    ctx.arc(canvasX, canvasY, scaledSize / 2, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Update mask if it exists
+    if (!mask) {
+        mask = {
+            data: new Uint8Array(imageInfo.width * imageInfo.height),
+            width: imageInfo.width,
+            height: imageInfo.height,
+            bounds: { 
+                minX: canvasX, 
+                minY: canvasY, 
+                maxX: canvasX, 
+                maxY: canvasY 
+            }
+        };
+    }
+    
+    // Mark painted area in mask
+    const radius = Math.ceil(scaledSize / 2);
+    for (let y = canvasY - radius; y <= canvasY + radius; y++) {
+        for (let x = canvasX - radius; x <= canvasX + radius; x++) {
+            if (x >= 0 && x < imageInfo.width && 
+                y >= 0 && y < imageInfo.height &&
+                Math.sqrt((x-canvasX)**2 + (y-canvasY)**2) <= radius) {
+                mask.data[y * imageInfo.width + x] = 1;
+            }
+        }
+    }
+    
+    // Update bounds
+    mask.bounds.minX = Math.min(mask.bounds.minX, canvasX - radius);
+    mask.bounds.minY = Math.min(mask.bounds.minY, canvasY - radius);
+    mask.bounds.maxX = Math.max(mask.bounds.maxX, canvasX + radius);
+    mask.bounds.maxY = Math.max(mask.bounds.maxY, canvasY + radius);
+    
+    updateImageData();
+  }
+
   function downloadImageResult() {
     // Create a temporary link element
     const link = document.createElement("a")
@@ -1247,4 +1436,5 @@ document.addEventListener("DOMContentLoaded", () => {
       startEditingName(galleryItem, image)
     })
   }
+  
 })

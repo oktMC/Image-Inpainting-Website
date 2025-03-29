@@ -45,18 +45,26 @@ function initCanvas(img) {
     var cvs = document.getElementById("resultCanvas");
     cvs.width = img.width;
     cvs.height = img.height;
+    
+    var ctx = cvs.getContext("2d", { willReadFrequently: true });
+    ctx.clearRect(0, 0, img.width, img.height);
+    ctx.drawImage(img, 0, 0);
+    
     imageInfo = {
         width: img.width,
         height: img.height,
-        context: cvs.getContext("2d")
+        context: ctx,
+        originalData: ctx.getImageData(0, 0, img.width, img.height)
     };
-    mask = null;
     
-    var tempCtx = document.createElement("canvas").getContext("2d");
-    tempCtx.canvas.width = imageInfo.width;
-    tempCtx.canvas.height = imageInfo.height;
-    tempCtx.drawImage(img, 0, 0);
-    imageInfo.data = tempCtx.getImageData(0, 0, imageInfo.width, imageInfo.height);
+    updateImageData();
+    mask = null;
+}
+
+function updateImageData() {
+    if (imageInfo && imageInfo.context) {
+        imageInfo.currentData = imageInfo.context.getImageData(0, 0, imageInfo.width, imageInfo.height);
+    }
 }
 
 function getMousePosition(e) {
@@ -110,14 +118,15 @@ function drawMask(x, y) {
     if (!imageInfo) return;
     
     var image = {
-        data: imageInfo.data.data,
+        data: imageInfo.currentData.data, // Use current data instead of original
         width: imageInfo.width,
         height: imageInfo.height,
         bytes: 4
     };
     
+    // Always preserve old mask when in add mode
     if (addMode && !oldMask) {
-    	oldMask = mask;
+        oldMask = mask;
     }
     
     let old = oldMask ? oldMask.data : null;
@@ -126,46 +135,69 @@ function drawMask(x, y) {
     if (mask) mask = MagicWand.gaussBlurOnlyBorder(mask, blurRadius, old);
     
     if (addMode && oldMask) {
-    	mask = mask ? concatMasks(mask, oldMask) : oldMask;
+        mask = mask ? concatMasks(mask, oldMask) : oldMask;
     }
     
     drawBorder();
 }
+
 function hatchTick() {
     hatchOffset = (hatchOffset + 1) % (hatchLength * 2);
-    drawBorder(true);
+    drawBorder();
 }
-function drawBorder(noBorder) {
-    if (!mask) return;
+
+function drawBorder(noBorder = false) {
+    if (!mask || !imageInfo) return;
     
-    var x,y,i,j,k,
-        w = imageInfo.width,
-        h = imageInfo.height,
-        ctx = imageInfo.context,
-        imgData = ctx.createImageData(w, h),
-        res = imgData.data;
+    const { width: w, height: h, context: ctx } = imageInfo;
     
-    if (!noBorder) cacheInd = MagicWand.getBorderIndices(mask);
+    // 1. Create a complete pixel buffer
+    const pixelBuffer = new Uint8ClampedArray(w * h * 4);
     
-    ctx.clearRect(0, 0, w, h);
+    // 2. Copy original image to buffer
+    pixelBuffer.set(imageInfo.originalData.data);
     
-    var len = cacheInd.length;
-    for (j = 0; j < len; j++) {
-        i = cacheInd[j];
-        x = i % w; // calc x by index
-        y = (i - x) / w; // calc y by index
-        k = (y * w + x) * 4; 
-        if ((x + y + hatchOffset) % (hatchLength * 2) < hatchLength) { // detect hatch color 
-            res[k + 3] = 255; // black, change only alpha
-        } else {
-            res[k] = 255; // white
-            res[k + 1] = 255;
-            res[k + 2] = 255;
-            res[k + 3] = 255;
+    // 3. Apply white selection (but leave border pixels untouched)
+    const borderPixels = new Set();
+    if (!noBorder) {
+        cacheInd = MagicWand.getBorderIndices(mask);
+        cacheInd.forEach(i => borderPixels.add(i));
+    }
+    
+    for (let i = 0; i < mask.data.length; i++) {
+        if (mask.data[i] === 1 && !borderPixels.has(i)) {
+            const pixelIndex = Math.floor(i / w) * w * 4 + (i % w) * 4;
+            pixelBuffer[pixelIndex] = 255;     // R
+            pixelBuffer[pixelIndex + 1] = 255; // G
+            pixelBuffer[pixelIndex + 2] = 255; // B
+            pixelBuffer[pixelIndex + 3] = 255; // A
         }
     }
-
-    ctx.putImageData(imgData, 0, 0);
+    
+    // 4. Draw border pattern (if enabled)
+    if (!noBorder) {
+        cacheInd.forEach(i => {
+            const pixelIndex = Math.floor(i / w) * w * 4 + (i % w) * 4;
+            
+            if ((i % w + Math.floor(i / w) + hatchOffset) % (hatchLength * 2) < hatchLength) {
+                // Black border pixel
+                pixelBuffer[pixelIndex] = 0;
+                pixelBuffer[pixelIndex + 1] = 0;
+                pixelBuffer[pixelIndex + 2] = 0;
+                pixelBuffer[pixelIndex + 3] = 255;
+            } else {
+                // White border pixel
+                pixelBuffer[pixelIndex] = 255;
+                pixelBuffer[pixelIndex + 1] = 255;
+                pixelBuffer[pixelIndex + 2] = 255;
+                pixelBuffer[pixelIndex + 3] = 255;
+            }
+        });
+    }
+    
+    // 5. Draw everything at once
+    ctx.putImageData(new ImageData(pixelBuffer, w, h), 0, 0);
+    updateImageData();
 }
 
 function hexToRgb(hex, alpha) {
