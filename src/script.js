@@ -650,15 +650,14 @@ document.addEventListener("DOMContentLoaded", () => {
     document.addEventListener("keyup", handleKeyUp);
     
     // Position brush preview at cursor
-    // canvas.style.cursor = "none";
+    canvas.style.cursor = "none";
     brushPreview.style.display = "block";
   }
 
   // Function to stop painting mode
   function stopPainting() {
     if (brushPreview) {
-        // brushPreview.style.display = "none";
-        // canvas.parentNode.removeChild(brushPreview)
+        brushPreview.style.display = "none";
     }
     
     // Remove event listeners
@@ -671,7 +670,7 @@ document.addEventListener("DOMContentLoaded", () => {
     document.removeEventListener("keyup", handleKeyUp);
     
     // Reset cursor
-    // canvas.style.cursor = "default";
+    canvas.style.cursor = "";
   }
 
   // Function to handle mouse down for painting
