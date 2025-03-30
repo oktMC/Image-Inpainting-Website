@@ -62,7 +62,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const previewImageSize = document.getElementById("preview-image-size")
   const previewImageDimensions = document.getElementById("preview-image-dimensions")
   const closePreviewBtn = document.getElementById("close-preview-btn")
-  const editImageBtn = document.getElementById("edit-image-btn")
   const downloadPreviewBtn = document.getElementById("download-preview-btn")
   const deleteImageBtn = document.getElementById("delete-image-btn")
 
@@ -91,13 +90,29 @@ document.addEventListener("DOMContentLoaded", () => {
   silentLogin()
   // Event Listeners
 
-  // Event listener for the checkbox
+  const savedTheme = localStorage.getItem('theme') || window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  document.documentElement.setAttribute('data-theme', savedTheme);
+
+  // Set the initial state of the toggle
+  switchCheckbox.checked = savedTheme === 'dark';
+  updateModeIcon(savedTheme);
+
+  // Update the toggle switch event listener
   switchCheckbox.addEventListener('change', () => {
-    // Update the mode icon based on the checkbox state
-    modeIcon.src = switchCheckbox.checked
-      ? 'https://developer.mozilla.org/static/media/theme-dark.2204a73b9b7fbc5e0219.svg' // Dark mode icon
-      : 'https://developer.mozilla.org/static/media/theme-light.af1aa3887c0deadaaf2e.svg'; // Light mode icon
+    const newTheme = switchCheckbox.checked ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', newTheme);
+    localStorage.setItem('theme', newTheme);
+    updateModeIcon(newTheme);
   });
+
+  // Event listener for the checkbox
+  // switchCheckbox.addEventListener('change', () => {
+  //   // Update the mode icon based on the checkbox state
+  //   modeIcon.src = switchCheckbox.checked
+  //     ? 'https://developer.mozilla.org/static/media/theme-dark.2204a73b9b7fbc5e0219.svg' // Dark mode icon
+  //     : 'https://developer.mozilla.org/static/media/theme-light.af1aa3887c0deadaaf2e.svg'; // Light mode icon
+  // });
+
   uploadArea.addEventListener("click", () => {
     if (!imagePreviewContainer.classList.contains("active")) {
       fileInput.click()
@@ -125,7 +140,6 @@ document.addEventListener("DOMContentLoaded", () => {
   fileInput.addEventListener("change", () => {
     if (fileInput.files.length) {
       handleFiles(fileInput.files)
-      // uploadArea.style.cursor = "default";
     }
   })
 
@@ -210,12 +224,6 @@ document.addEventListener("DOMContentLoaded", () => {
     if (e.target === imagePreviewModal) {
       closePreviewModal()
     }
-  })
-
-  // Preview actions
-  editImageBtn.addEventListener("click", () => {
-    closePreviewModal()
-    switchView("editor")
   })
 
   downloadPreviewBtn.addEventListener("click", downloadPreviewImage)
@@ -433,6 +441,18 @@ document.addEventListener("DOMContentLoaded", () => {
   // })
 
   // Functions
+  function updateModeIcon(theme) {
+    modeIcon.src = theme === 'dark' 
+      ? 'https://developer.mozilla.org/static/media/theme-dark.2204a73b9b7fbc5e0219.svg'
+      : 'https://developer.mozilla.org/static/media/theme-light.af1aa3887c0deadaaf2e.svg';
+    
+    // Also update the icon color if needed
+    const icon = document.querySelector('.auth-icon i');
+    if (icon) {
+      icon.style.color = theme === 'dark' ? '#e0e0e0' : '#555';
+    }
+  }
+
   function handleFiles(files) {
     const file = files[0]
 
@@ -610,10 +630,6 @@ document.addEventListener("DOMContentLoaded", () => {
     // imageOverlay.style.pointerEvents = "auto"
   }
 
-  function resetCursor() {
-    canvas.classList.remove("magic-wand-cursor")
-    // imageOverlay.style.pointerEvents = "none"
-  }
   function runMagicWand(){
     canvas.classList.add("magic-wand-cursor")
     canvas.addEventListener("mouseup", onMouseUp);
