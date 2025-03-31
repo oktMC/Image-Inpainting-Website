@@ -141,3 +141,34 @@ exports.updateTitle = async (req, res) => {
     res.status(500).json({ error: 'Failed to update title' });
   }
 };
+
+exports.deleteGalleryImage = async (req, res) => {
+  try {
+    if (!req.body._id) {
+      return res.status(400).json({ error: 'Image ID is required' });
+    }
+
+    const image = await Gallery.findOne({ 
+      _id: req.body._id,
+      username: req.user.username 
+    });
+
+    if (!image) { return res.status(404).json({ error: 'Image not found', }) }
+
+    await Gallery.deleteOne({ _id: req.body._id });
+
+    res.status(200).json({
+      success: true,
+      message: 'Image deleted successfully',
+      deletedId: req.body._id
+    });
+
+  } catch (error) {
+    console.error('Delete error:', error);
+    // Handle different error types
+    if (error.name === 'CastError') {
+      return res.status(400).json({ error: 'Invalid ID format' });
+    }
+    res.status(500).json({error: 'Server error during deletion'});
+  }
+};

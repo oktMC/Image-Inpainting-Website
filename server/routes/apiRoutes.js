@@ -3,7 +3,7 @@ const router = express.Router();
 const verifyToken = require('../middleware/auth');
 
 const { register, login, silentLogin} = require('../controllers/authController');
-const { saveImage, getGallery, deleteImage, updateFavorite, updateTitle} = require('../controllers/galleryController');
+const { saveImage, getGallery, deleteImage, updateFavorite, updateTitle, deleteGalleryImage} = require('../controllers/galleryController');
 
 // Authentication
 router.post('/register', express.json(), register);
@@ -18,5 +18,6 @@ router.delete('/nosave', express.json(), verifyToken, deleteImage);
 // User actions
 router.put('/users/favorites', express.json(), verifyToken, updateFavorite);
 router.put('/users/title', express.json(), verifyToken, updateTitle);
+router.delete('/users/delete',express.json(), verifyToken, deleteGalleryImage)
 
 module.exports = router;

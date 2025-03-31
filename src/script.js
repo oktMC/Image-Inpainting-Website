@@ -228,15 +228,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   downloadPreviewBtn.addEventListener("click", downloadPreviewImage)
 
-  deleteImageBtn.addEventListener("click", () => {
-    if (confirm("Are you sure you want to delete this image?")) {
-      // In a real app, this would send a request to delete the image
-      alert("Image deleted successfully!")
-      closePreviewModal()
-      loadGalleryImages() // Reload the gallery
-    }
-  })
-
   modeButtons.forEach((button) => {
     button.addEventListener("click", function () {
       // Deactivate all tools
@@ -567,7 +558,7 @@ document.addEventListener("DOMContentLoaded", () => {
         resetBtn.disabled = false
     } catch (error) {
         console.error('Error:', error);
-        alert('Failed to process image.');
+        showUploadStatus('Failed to process image.', "error")
         uploadBtn.disabled = false
         resetBtn.disabled = false
     }
@@ -1149,11 +1140,6 @@ document.addEventListener("DOMContentLoaded", () => {
         openPreviewModal(image)
       })
 
-      // editBtn.addEventListener("click", (e) => {
-      //   e.stopPropagation()
-      //   switchView("editor")
-      // })
-
       downloadBtn.addEventListener("click", (e) => {
         e.stopPropagation()
         downloadGalleryImage(image)
@@ -1199,9 +1185,37 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Prevent body scrolling
     disableScroll()
+    const deleteHandler = async() => {
+      if (confirm("Are you sure you want to delete this image?")) {
+        // In a real app, this would send a request to delete the image
+        try {
+          console.log(image._id)
+          const token = localStorage.getItem('authToken');
+          const response = await axios.delete('/api/users/delete', {
+            data: { 
+                _id: image._id 
+            },
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+          });
+  
+        } catch (error) {
+          console.error('Error:', error);
+          showUploadStatus("Failed to delete image!","error")
+        }
+        showUploadStatus("Image deleted successfully!","success")
+        closePreviewModal()
+        loadGalleryImages() // Reload the gallery
+      }
+    }
+    deleteImageBtn.addEventListener("click", deleteHandler)
+    imagePreviewModal._deleteHandler = deleteHandler;
   }
 
   function closePreviewModal() {
+    deleteImageBtn.removeEventListener("click", imagePreviewModal._deleteHandler);
     imagePreviewModal.classList.remove("active")
     enableScroll()
   }
@@ -1403,6 +1417,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   async function saveImageName(galleryItem, image, newName) {
+    const starIcon = image.favorite ? "fa-solid fa-star" : "fa-regular fa-star"
     // Trim the new name
     newName = newName.trim()
     // If the new name is empty, revert to the original name
@@ -1438,13 +1453,32 @@ document.addEventListener("DOMContentLoaded", () => {
         <button class="edit-name-btn" title="Edit name">
           <i class="fa-solid fa-pen-to-square"></i>
         </button>
+        <button class="favorite-btn" title="${image.favorite ? "Remove from favorites" : "Add to favorites"}">
+          <i class="${starIcon}" ></i>
+        </button>
         `
 
         // Re-add event listener to the edit button
         const editNameBtn = titleContainer.querySelector(".edit-name-btn")
+        const favoriteBtn = titleContainer.querySelector(".favorite-btn")
         editNameBtn.addEventListener("click", (e) => {
           e.stopPropagation()
           startEditingName(galleryItem, galleryImages[imageIndex])
+        })
+
+        favoriteBtn.addEventListener("click", (e) => {
+          e.stopPropagation()
+          toggleFavorite(image._id)
+        })
+  
+        favoriteBtn.addEventListener("mouseover", (e) => {
+          e.stopPropagation()
+          favoriteBtn.querySelector('i').className= starIcon_reverse
+        })
+  
+        favoriteBtn.addEventListener("mouseout", (e) => {
+          e.stopPropagation()
+          favoriteBtn.querySelector('i').className= starIcon
         })
 
       } catch (error) {
@@ -1458,18 +1492,38 @@ document.addEventListener("DOMContentLoaded", () => {
   function cancelEditingName(galleryItem, image) {
     // Restore the original title element
     const titleContainer = galleryItem.querySelector(".title-container")
+    const starIcon = image.favorite ? "fa-solid fa-star" : "fa-regular fa-star"
     titleContainer.innerHTML = `
     <h3 class="gallery-item-title">${image.title}</h3>
     <button class="edit-name-btn" title="Edit name">
       <i class="fa-solid fa-pen-to-square"></i>
     </button>
+    <button class="favorite-btn" title="${image.favorite ? "Remove from favorites" : "Add to favorites"}">
+      <i class="${starIcon}" ></i>
+    </button>
   `
 
     // Re-add event listener to the edit button
     const editNameBtn = titleContainer.querySelector(".edit-name-btn")
+    const favoriteBtn = titleContainer.querySelector(".favorite-btn")
     editNameBtn.addEventListener("click", (e) => {
       e.stopPropagation()
       startEditingName(galleryItem, image)
+    })
+
+    favoriteBtn.addEventListener("click", (e) => {
+      e.stopPropagation()
+      toggleFavorite(image._id)
+    })
+
+    favoriteBtn.addEventListener("mouseover", (e) => {
+      e.stopPropagation()
+      favoriteBtn.querySelector('i').className= starIcon_reverse
+    })
+
+    favoriteBtn.addEventListener("mouseout", (e) => {
+      e.stopPropagation()
+      favoriteBtn.querySelector('i').className= starIcon
     })
   }
   

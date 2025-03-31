@@ -1123,6 +1123,7 @@ footer {
 }
 
 .favorite-btn{
+  background: none;
   border: none;
   padding: 0.25rem;
   cursor:pointer;
