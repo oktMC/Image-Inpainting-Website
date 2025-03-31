@@ -504,6 +504,7 @@ document.addEventListener("DOMContentLoaded", () => {
     activeMode = null
     mode = null
     resetMagicWand()
+    stopPainting()
   }
 
   // function uploadImage() {
@@ -544,7 +545,7 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
         uploadBtn.disabled = true
         resetBtn.disabled = true
-        const response = await axios.post(`http://localhost:5000/process/${mode}`, formData, {
+        const response = await axios.post(`/process/${mode}`, formData, {
             headers: {
                 'Content-Type': 'multipart/form-data' // Set the content type
             },
@@ -1028,7 +1029,8 @@ document.addEventListener("DOMContentLoaded", () => {
             'Authorization': `Bearer ${token}`,
         },
       })
-        galleryImages = response.data.image
+        galleryImages = response.data.images
+        console.log(response.data)
         console.log(galleryImages)
       } catch (error){
         console.error("Error saving image:", error);
