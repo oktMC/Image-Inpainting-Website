@@ -20,7 +20,7 @@ exports.processImage = async (req, res) => {
       const processedImageDir = path.join(serverRoot, 'processed_Image');
 
       const processedImageId = uuidv4();
-      const pythonScriptPath = path.resolve(__dirname, '../../../test.py');
+      const pythonScriptPath = path.resolve(__dirname, '../../scripts/main.py');
       const outputImagePath = path.join(__dirname, `../processed_Image/${processedImageId}${fileExtension}`);
   
       const python = spawn('python', [pythonScriptPath, imagePath, outputImagePath, mode]);

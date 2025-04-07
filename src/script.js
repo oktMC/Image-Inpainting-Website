@@ -523,8 +523,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // const file = imgData.files[0];
     
-    if (!currentFile || !mask || mode === null) {
-        alert('Please select an image, a mode and a mask.');
+    if (!currentFile || mode === null) {
+        alert('Please select an image and a mode.');
         return;
     }
     formData.append('image', currentFile , 'image.jpg');

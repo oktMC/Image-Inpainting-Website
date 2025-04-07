@@ -4,3 +4,7 @@ server/uploads/
 server/processed_Image/
 
 .env
+
+.venv
+
+__pycache__/
