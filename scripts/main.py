@@ -58,7 +58,7 @@ def main():
             print(f"--- {time.time() - start_time:.2f} seconds ---")
         case 1:
             start_time = time.time()
-            process_image_channels(image, mask)
+            image = process_image_channels(image, mask)
             print(f"--- {time.time() - start_time:.2f} seconds ---")
         case _:
             raise Exception("Wrong mode")
