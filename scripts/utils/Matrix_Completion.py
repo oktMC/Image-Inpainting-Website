@@ -3,7 +3,7 @@ import time
 import concurrent.futures
 from functools import partial
 
-def LpMPv2(X, mask, p=1.1, num_iterations=200, tol=5e-7):
+def LpMPv2(X, mask, p=1.1, num_iterations=200, tol=1e-5):
     # start_time = time.time()
     n1, n2 = X.shape
     v = np.random.randn(n2, 1)  
@@ -65,7 +65,7 @@ def LpMPv2(X, mask, p=1.1, num_iterations=200, tol=5e-7):
         
         # stopping criterion
         if eta <= tol:
-            # print(f"Converged at iteration {k+1}")
+            print(f"Converged at iteration {k+1}")
             break
     # M = X*mask + (1 - mask) * M # for no noise
     # print(f"--- {time.time() - start_time:.2f} seconds ---")
@@ -259,6 +259,7 @@ def ALS(X, mask, rank, num_iterations=40):
     n1, n2 = X.shape
     U = np.random.randn(n1, rank)
     V = np.random.randn(rank, n2)
+    mask = mask.astype(bool)
 
     for k in range(num_iterations):
         print(f"Iteration {k + 1}/{num_iterations}")
@@ -273,10 +274,11 @@ def ALS(X, mask, rank, num_iterations=40):
             U[i] = np.linalg.solve(VJ @ VJ.T, VJ @ bJ)
 
     print("--- %.2f seconds ---" % (time.time() - start_time))
-    return U, V
+    return U@V
 
 def IRLS(X, mask, rank, p, num_iterations=40):
     start_time = time.time()
+    mask = mask.astype(bool)
     n1, n2 = X.shape
     U = np.random.randn(n1, rank)
     V = np.random.randn(rank, n2)

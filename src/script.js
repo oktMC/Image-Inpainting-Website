@@ -579,13 +579,11 @@ document.addEventListener("DOMContentLoaded", () => {
   async function closeModal() {
     if (!savedGallery){
       try {
-        const token = localStorage.getItem('authToken');
         const response = await axios.delete('/api/nosave', {
           data: { 
               processedImageID: processedImageID 
           },
           headers: {
-              'Authorization': `Bearer ${token}`,
               'Content-Type': 'application/json'
           }
         });
@@ -834,7 +832,6 @@ document.addEventListener("DOMContentLoaded", () => {
     if (isLoggedIn) {
       // Log out
       isLoggedIn = false
-      localStorage.removeItem('authToken');
       updateAuthIcon()
       showUploadStatus("You have been logged out.", "success")
     } else {
@@ -950,34 +947,27 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   async function silentLogin() {
-    const token = localStorage.getItem('authToken');
-    if (token) {
-      try {
-        // Axios request with Bearer token
-        const response = await axios.get('/api/validate-token', {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-  
-        const { isValid, username } = response.data;
-        if (isValid) {
-          isLoggedIn = true;
-          updateAuthIcon();
-          // showUploadStatus(`Welcome back, ${username}!`, "success");
-        }
-      } catch (error) {
-        if (axios.isAxiosError(error)) {
-          if (error.response?.status === 401) {
-            console.error("Token expired or invalid");
-          } else {
-            console.error("Network error:", error.message);
-          }
-        } else {
-            console.error("Unexpected error:", error);
-        }
+    try {
+      // Axios request with Bearer token
+      const response = await axios.post('/api/validate-token');
+
+      const { isValid, username } = response.data;
+      if (isValid) {
+        isLoggedIn = true;
+        updateAuthIcon();
+        // showUploadStatus(`Welcome back, ${username}!`, "success");
       }
-    } 
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        if (error.response?.status === 401) {
+          console.error("Token expired or invalid");
+        } else {
+          console.error("Network error:", error.message);
+        }
+      } else {
+          console.error("Unexpected error:", error);
+      }
+    }
   }
   
   // Add these functions to the end of the file
@@ -1014,12 +1004,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (isLoggedIn) {
       // Sample user gallery data
       try{
-        const token = localStorage.getItem('authToken')
-        const response = await axios.get('/api/gallery',{
-          headers: {
-            'Authorization': `Bearer ${token}`,
-        },
-      })
+        const response = await axios.get('/api/gallery')
         galleryImages = response.data.images
         console.log(response.data)
         console.log(galleryImages)
@@ -1190,13 +1175,11 @@ document.addEventListener("DOMContentLoaded", () => {
         // In a real app, this would send a request to delete the image
         try {
           console.log(image._id)
-          const token = localStorage.getItem('authToken');
           const response = await axios.delete('/api/users/delete', {
             data: { 
                 _id: image._id 
             },
             headers: {
-                'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json'
             }
           });
@@ -1291,14 +1274,12 @@ document.addEventListener("DOMContentLoaded", () => {
     if (imageIndex !== -1) {
       // Toggle the favorite status
       try {
-        const token = localStorage.getItem('authToken');
         const response = await axios.put('/api/users/favorites',
           { _id: imageId,
             favorite: !galleryImages[imageIndex].favorite,
           },
           {
             headers: {
-              'Authorization': `Bearer ${token}`,
               'Content-Type': 'application/json'
             }
           }
@@ -1323,18 +1304,15 @@ document.addEventListener("DOMContentLoaded", () => {
       showUploadStatus("Please login to use Gallery","error")
       return;
     }
-    const token = localStorage.getItem('authToken');
     if (processedImage.src) {
       try {
           // Get dimensions from the processed image
-          console.log(localStorage.getItem('authToken'))
           // Send data to server using Axios
           const response = await axios.post('/api/save', {
               processedImageID: processedImageID,
           }, {
               headers: {
                   'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${token}`,
               },
           });
           saveGalleryBtn.disabled = true;
@@ -1438,7 +1416,6 @@ document.addEventListener("DOMContentLoaded", () => {
           },
           {
             headers: {
-              'Authorization': `Bearer ${token}`,
               'Content-Type': 'application/json'
             }
           }

@@ -16,12 +16,22 @@
   "dependencies": {
     "bcryptjs": "^3.0.2",
     "child_process": "^1.0.2",
+    "connect-mongo": "^5.1.0",
+    "cookie-parser": "^1.4.7",
     "dotenv": "^16.4.7",
     "express": "^4.17.1",
+    "express-session": "^1.18.2",
+    "http-status": "^2.1.0",
+    "joi": "^17.13.3",
     "jsonwebtoken": "^9.0.2",
+    "lodash": "^4.17.21",
     "mongoose": "^8.12.1",
     "multer": "^1.4.5-lts.1",
+    "passport": "^0.7.0",
+    "passport-jwt": "^4.0.1",
+    "passport-local": "^1.0.0",
     "sharp": "^0.33.5",
-    "uuid": "^11.1.0"
+    "uuid": "^11.1.0",
+    "winston": "^3.17.0"
   }
 }
